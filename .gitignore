@@ -1,0 +1,38 @@
+# Packaging output (rebuild with: python3 tools/package_books.py)
+dist/
+
+# Generated app curriculum data — 38 MB, rebuilt from the repo's JSON sources.
+# KEEP OUT OF GIT. Regenerate before building or deploying the app:
+#     cd app && yarn curriculum      (runs tools/build_app_curriculum.py)
+# See docs/APP_CURRICULUM.md.
+app/public/curriculum/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node / app runtime
+node_modules/
+build/
+.vite/
+
+# Environment / secrets — never commit Firebase keys
+.env
+.env.local
+.env.*.local
+
+# Editors & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Scratch
+*.bak
+*.orig
+~$*.docx
+
+# Reference copy of the app (unpacked from saas-files.zip, read-only reference)
+.saas-reference/

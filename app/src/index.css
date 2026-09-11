@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+/* Rich-text article/note content is rendered with `prose` classes
+   in RichEditor, ArticleView, PublicArticleView. This plugin provides them. */
+@plugin "@tailwindcss/typography";
+
+/* ===================================================================
+   DESIGN TOKENS  (Tailwind v4 is CSS-first; this @theme block is the config)
+
+   Grayscale redesign. Two things happen here:
+   1. We RETARGET the color scales the app already uses -- slate, stone,
+      indigo -- to a neutral gray ramp, so every existing bg-slate-*,
+      border-slate-*, bg-indigo-600 utility across all pages reskins at once.
+   2. We add semantic palette tokens, fluid type, and capped radii.
+
+   Palette anchors:  #e8e8e8 page bg,  #3e3e3e ink/buttons,  #939393 nav/frame.
+   Kept for meaning:  red danger,  emerald/green success,  amber/sky status.
+   =================================================================== */
+@theme {
+  /* Semantic palette -- also generates bg-*, text-*, border-* utilities. */
+  --color-canvas:    #e8e8e8; /* page background */
+  --color-surface:   #f5f5f5; /* card / raised surface */
+  --color-nav:       #939393; /* navbar / sidebar chrome */
+  --color-brand:       #047857; /* emerald-700 - primary/accent: buttons, links, active, focus */
+  --color-brand-hover: #065f46; /* emerald-800 - hover/pressed */
+  --color-brand-soft:  #d1fae5; /* emerald-100 - subtle accent backgrounds/badges */
+  --color-brand-ring:  #34d399; /* emerald-400 - focus ring glow */
+  --color-ink:       #3e3e3e; /* charcoal - strong body/heading text */
+  --color-frame:     #cfcfcf; /* hairline borders on light */
+
+  /* Neutral ramp -- retargets slate-* for structure, text, borders. */
+  --color-slate-50:  #f5f5f5;
+  --color-slate-100: #e8e8e8;
+  --color-slate-200: #d7d7d7;
+  --color-slate-300: #bcbcbc;
+  --color-slate-400: #939393;
+  --color-slate-500: #7c7c7c;
+  --color-slate-600: #5e5e5e;
+  --color-slate-700: #4a4a4a;
+  --color-slate-800: #3e3e3e;
+  --color-slate-900: #2c2c2c;
+  --color-slate-950: #1e1e1e;
+
+  /* stone-* -- old warm sidebar text -- mapped to the same neutral ramp. */
+  --color-stone-50:  #f5f5f5;
+  --color-stone-100: #e8e8e8;
+  --color-stone-200: #d7d7d7;
+  --color-stone-300: #bcbcbc;
+  --color-stone-400: #939393;
+  --color-stone-500: #7c7c7c;
+  --color-stone-600: #5e5e5e;
+  --color-stone-700: #4a4a4a;
+  --color-stone-800: #3e3e3e;
+  --color-stone-900: #2c2c2c;
+  --color-stone-950: #1e1e1e;
+
+  /* Primary/accent -- retargets indigo-* to emerald so un-migrated pages
+     using literal indigo utilities match --color-brand. 600 maps to
+     emerald-700 so white-on-accent buttons and accent-text-on-light pass AA. */
+  --color-indigo-50:  #ecfdf5;
+  --color-indigo-100: #d1fae5;
+  --color-indigo-200: #a7f3d0;
+  --color-indigo-300: #6ee7b7;
+  --color-indigo-400: #34d399;
+  --color-indigo-500: #10b981;
+  --color-indigo-600: #047857;
+  --color-indigo-700: #065f46;
+  --color-indigo-800: #064e3b;
+  --color-indigo-900: #064e3b;
+  --color-indigo-950: #022c22;
+
+  /* Radius -- held to 8-12px. Bump md to 8 so rounded-md controls comply;
+     lg stays 8, xl stays 12, cap 2xl/3xl at 12. */
+  --radius-md: 0.5rem;
+  --radius-2xl: 0.75rem;
+  --radius-3xl: 0.75rem;
+
+  /* Fluid type -- every text-* scales with the viewport, min to max.
+     Paired unitless line-heights keep proportions across the range. */
+  --text-xs:   clamp(0.72rem, 0.69rem + 0.15vw, 0.80rem);
+  --text-xs--line-height: 1.5;
+  --text-sm:   clamp(0.82rem, 0.78rem + 0.20vw, 0.92rem);
+  --text-sm--line-height: 1.5;
+  --text-base: clamp(0.94rem, 0.89rem + 0.25vw, 1.06rem);
+  --text-base--line-height: 1.55;
+  --text-lg:   clamp(1.05rem, 0.99rem + 0.32vw, 1.20rem);
+  --text-lg--line-height: 1.5;
+  --text-xl:   clamp(1.20rem, 1.10rem + 0.50vw, 1.40rem);
+  --text-xl--line-height: 1.4;
+  --text-2xl:  clamp(1.45rem, 1.30rem + 0.80vw, 1.80rem);
+  --text-2xl--line-height: 1.25;
+  --text-3xl:  clamp(1.75rem, 1.48rem + 1.20vw, 2.30rem);
+  --text-3xl--line-height: 1.15;
+  --text-4xl:  clamp(2.10rem, 1.70rem + 1.80vw, 3.00rem);
+  --text-4xl--line-height: 1.1;
+  --text-5xl:  clamp(2.50rem, 1.90rem + 2.80vw, 4.00rem);
+  --text-5xl--line-height: 1.05;
+}
+
+/* Base */
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  @apply bg-canvas text-slate-800 antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11"; /* Inter numeric variants */
+}
+
+/* Shared typography vocabulary used across all pages, now grayscale + fluid. */
+@layer components {
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-slate-900;
+  }
+
+  .page-subtitle {
+    @apply mt-1 text-sm leading-relaxed text-slate-500;
+  }
+
+  .section-heading {
+    @apply text-xs font-semibold tracking-widest text-slate-400 uppercase;
+  }
+
+  .card-title {
+    @apply text-base font-semibold leading-snug text-slate-900;
+  }
+
+  .card-meta {
+    @apply text-xs leading-relaxed text-slate-400;
+  }
+
+  .label-caps {
+    @apply mb-1 block text-[11px] font-semibold tracking-wide text-slate-500 uppercase;
+  }
+
+  /* Light card with a gray frame -- the redesign primary surface. */
+  .card {
+    @apply rounded-xl border border-frame bg-surface shadow-sm;
+  }
+
+  /* Mobile-first responsive card grid:
+     1 col, then 2 at 640px, 3 at 1024px, 4 at 1280px. */
+  .grid-responsive {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+}
+
+/* Consistent neutral keyboard focus for all interactive elements. */
+@layer base {
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand;
+  }
+}
