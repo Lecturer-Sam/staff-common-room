@@ -18,6 +18,15 @@ node_modules/
 build/
 .vite/
 
+# Yarn Berry — commit .yarnrc.yml, ignore the generated cache and state
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+
 # Environment / secrets — never commit Firebase keys
 .env
 .env.local
