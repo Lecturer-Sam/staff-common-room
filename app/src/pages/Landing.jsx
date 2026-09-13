@@ -126,132 +126,87 @@ function ContactForm() {
   )
 }
 
-const features = [
+/* ── Content ─────────────────────────────────────────────────────────────── */
+
+const STEPS = [
   {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-indigo-600">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-      </svg>
-    ),
-    title: 'NaCCA Curriculum Library',
-    body: 'Browse every strand, sub-strand, content standard and indicator for all subjects — exactly as coded by NaCCA — from Basic 1 to Basic 9.',
+    n: '1',
+    title: 'Choose your class',
+    body: 'Pick your grade — Basic 1 through Basic 9 — and your subject. Every grade and subject in the NaCCA curriculum is covered.',
   },
   {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-amber-500">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-      </svg>
-    ),
-    title: 'Indicator-Tagged Lesson Plans',
-    body: 'Members share lesson plans tagged to specific curriculum indicators. Find ready-to-adapt material for the exact lesson you are teaching.',
+    n: '2',
+    title: 'Choose the term',
+    body: 'Term 1, 2 or 3, or the whole year at once. Add your school, class, name and year if you want them printed on the cover.',
   },
   {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-emerald-600">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    ),
-    title: 'A Network of Teachers',
-    body: 'Connect with fellow consortium members across Ghana — share classroom wins, ask questions and consult colleagues by subject.',
+    n: '3',
+    title: 'Download it',
+    body: 'A finished Word document lands in your downloads in about a second — ready to print, sign and submit.',
   },
 ]
 
-/* ── Portal mockup rendered in the hero ──────────────────────────────────── */
-function PortalMockup() {
+const STATS = [
+  { value: '13,140', label: 'curriculum-aligned lesson plans behind the generator' },
+  { value: '4,040', label: 'NaCCA indicators, coded strand to indicator' },
+  { value: 'B1–B9', label: 'every grade, 13 subjects' },
+  { value: '180', label: 'teaching days mapped per subject, per year' },
+]
+
+const CONTRAST = {
+  printed: [
+    'One copy, passed around or photocopied',
+    'Goes out of date and nobody tells you',
+    'Blank lines for you to fill in by hand',
+    'The same booklet as every other school',
+  ],
+  beacon: [
+    'Yours to keep and regenerate any time',
+    'Rebuilt for the term you are actually teaching',
+    'Your school, class and name printed on the cover',
+    'Matched to the indicators you are teaching that week',
+  ],
+}
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+
+function Check({ children }) {
   return (
-    <div className="relative w-full select-none overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl ring-1 ring-slate-900/5">
-      {/* Browser chrome */}
-      <div className="flex items-center gap-1.5 border-b border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-2.5">
-        <span className="h-2 w-2 shrink-0 rounded-full bg-red-400 sm:h-2.5 sm:w-2.5" />
-        <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400 sm:h-2.5 sm:w-2.5" />
-        <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400 sm:h-2.5 sm:w-2.5" />
-        <div className="mx-2 min-w-0 flex-1 truncate rounded-md bg-slate-100 px-2 py-0.5 text-[9px] text-slate-400 sm:mx-3 sm:px-3 sm:py-1 sm:text-[10px]">
-          beacon-consult.vercel.app/portal
-        </div>
-      </div>
+    <li className="flex items-start gap-2 text-sm text-slate-600">
+      <svg
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500"
+        aria-hidden="true"
+      >
+        <path
+          fillRule="evenodd"
+          d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
+          clipRule="evenodd"
+        />
+      </svg>
+      <span>{children}</span>
+    </li>
+  )
+}
 
-      {/* App shell */}
-      <div className="flex h-[260px] sm:h-[340px]">
-        {/* Sidebar */}
-        <aside className="hidden w-24 flex-col gap-0.5 border-r border-black/10 bg-nav p-2 min-[400px]:flex sm:w-32 sm:p-2.5">
-          <div className="mb-2 flex items-center gap-1 px-1">
-            <img src="/beaconlogo.png" alt="" className="h-4 w-4 shrink-0 object-contain sm:h-5 sm:w-5" />
-            <span className="min-w-0 truncate text-[8px] font-bold text-slate-900 sm:text-[9px]">BEC</span>
-          </div>
-          {[
-            { label: 'Feed',        active: true  },
-            { label: 'Curriculum',  active: false },
-            { label: 'Schemes',     active: false },
-            { label: 'Lesson Plans',active: false },
-            { label: 'Questions',   active: false },
-            { label: 'Articles',    active: false },
-          ].map(({ label, active }) => (
-            <div
-              key={label}
-              className={`truncate rounded-md px-1.5 py-0.5 text-[8px] font-semibold sm:px-2 sm:py-1 sm:text-[10px] ${
-                active ? 'bg-brand text-white' : 'text-slate-800'
-              }`}
-            >
-              {label}
-            </div>
-          ))}
-        </aside>
-
-        {/* Main content — Teacher Feed */}
-        <div className="flex-1 overflow-hidden p-2 sm:p-3">
-          {/* Page title */}
-          <div className="mb-2">
-            <div className="text-[10px] font-bold text-slate-800 sm:text-[11px]">Teacher Feed</div>
-            <div className="mt-0.5 hidden text-[9px] text-slate-400 sm:block">Share ideas, questions and classroom wins</div>
-          </div>
-
-          {/* Calendar widget */}
-          <div className="mb-1.5 flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1">
-            <span className="relative flex h-2 w-2 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            <span className="text-[8px] font-semibold text-emerald-700">First Term — Wk 4</span>
-          </div>
-
-          {/* Composer box */}
-          <div className="mb-2 rounded-lg border border-slate-200 bg-white p-1.5 sm:p-2">
-            <div className="flex items-center gap-1.5">
-              <div className="h-5 w-5 shrink-0 rounded-full bg-indigo-100 sm:h-6 sm:w-6" />
-              <div className="flex-1 rounded-md bg-slate-50 px-1.5 py-1 text-[8px] text-slate-400">
-                Share an idea or classroom win…
-              </div>
-            </div>
-          </div>
-
-          {/* Feed posts */}
-          <div className="space-y-1.5">
-            {[
-              { name: 'Abena M.', text: 'Used role-play for the market scene in English today — pupils loved it!', color: 'bg-indigo-100' },
-              { name: 'Kofi A.', text: 'Anyone have a B4 Fractions scheme they can share?', color: 'bg-emerald-100' },
-              { name: 'Ama S.', text: 'Reminder: submit 5 questions to the bank before Friday.', color: 'bg-amber-100' },
-            ].map((p) => (
-              <div key={p.name} className="flex items-start gap-1.5 rounded-lg border border-slate-100 bg-white p-1.5">
-                <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[7px] font-bold text-slate-600 ${p.color}`}>
-                  {p.name[0]}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[8px] font-semibold text-slate-700">{p.name}</p>
-                  <p className="line-clamp-1 text-[7px] text-slate-500">{p.text}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+function Cross({ children }) {
+  return (
+    <li className="flex items-start gap-2 text-sm text-slate-500">
+      <svg
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        className="mt-0.5 h-4 w-4 shrink-0 text-slate-300"
+        aria-hidden="true"
+      >
+        <path
+          fillRule="evenodd"
+          d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM6.75 9.25a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5Z"
+          clipRule="evenodd"
+        />
+      </svg>
+      <span>{children}</span>
+    </li>
   )
 }
 
@@ -273,11 +228,10 @@ export default function Landing() {
             </div>
           </span>
           <nav className="hidden items-center gap-6 text-sm text-slate-300 sm:flex">
-            <a href="#about" className="hover:text-white">About</a>
-            <a href="#features" className="hover:text-white">What we offer</a>
+            <a href="#how" className="hover:text-white">How it works</a>
+            <a href="#sample" className="hover:text-white">See a sample</a>
+            <a href="#library" className="hover:text-white">The library</a>
             <Link to="/articles" className="hover:text-white">Articles</Link>
-            <Link to="/quotes" className="hover:text-white">Quotes</Link>
-            <Link to="/calendar" className="hover:text-white">Calendar</Link>
             <Link to="/vacancies" className="hover:text-white">Vacancies</Link>
             <a href="#contact" className="hover:text-white">Contact</a>
           </nav>
@@ -292,7 +246,7 @@ export default function Landing() {
                   Member login
                 </Link>
                 <Link to="/signup" className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 sm:px-4">
-                  Apply to join
+                  Create account
                 </Link>
               </>
             )}
@@ -303,32 +257,30 @@ export default function Landing() {
       {/* ── Hero ── */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
         <div className="flex flex-col items-center gap-12 lg:flex-row lg:items-center lg:gap-16">
-          {/* Left: text */}
           <div className="flex-1 text-center lg:text-left">
             <p className="mb-3 text-sm font-semibold tracking-widest text-amber-600 uppercase">
-              For Ghanaian school teachers
+              For Ghanaian basic school teachers
             </p>
             <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-              Plan, share and consult around the{' '}
-              <span className="text-indigo-700">NaCCA curriculum</span>
+              Get your <span className="text-indigo-700">Sundays</span> back.
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg text-slate-600 lg:mx-0">
-              Beacon Educational Consult gives vetted consortium teachers a shared
-              curriculum library, an indicator-tagged lesson plan bank, schemes of
-              learning, a question bank, and a professional network — all in one place.
+              Generate a complete Scheme of Learning or Record of Work for your
+              class — NaCCA-aligned, printed with your school&rsquo;s name, ready
+              in about a second. No more writing them out by hand every term.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
               <Link
                 to="/signup"
                 className="rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow hover:bg-indigo-700"
               >
-                Apply for membership
+                Create your account
               </Link>
               <a
-                href="#features"
+                href="#sample"
                 className="rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
               >
-                See what's inside
+                See a sample scheme
               </a>
             </div>
 
@@ -340,85 +292,158 @@ export default function Landing() {
               </span>
               <span className="flex items-center gap-1.5">
                 <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4 text-emerald-500"><circle cx="8" cy="8" r="8" /></svg>
-                Vetted members only
+                Ready in seconds
               </span>
               <span className="flex items-center gap-1.5">
                 <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4 text-emerald-500"><circle cx="8" cy="8" r="8" /></svg>
-                Free to join
+                Your school&rsquo;s name on it
               </span>
             </div>
           </div>
 
-          {/* Right: portal mockup — hidden on xs, shown from sm */}
+          {/* Right: the actual output */}
           <div className="hidden w-full sm:block sm:flex-1 lg:max-w-[520px]">
-            <PortalMockup />
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl ring-1 ring-slate-900/5">
+              <img
+                src="/samples/scheme-sample.jpg"
+                alt="A generated Scheme of Learning for Basic 4 Mathematics, showing the cover with the school name and a week-by-week table"
+                className="w-full"
+              />
+            </div>
+            <p className="mt-2 text-center text-xs text-slate-400">
+              Basic 4 Mathematics — one page of a generated scheme
+            </p>
           </div>
         </div>
       </section>
 
-      {/* ── Features ── */}
-      <section id="features" className="border-t border-slate-100 bg-slate-50 py-16">
+      {/* ── How it works ── */}
+      <section id="how" className="border-t border-slate-100 bg-slate-50 py-16">
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-slate-900">What members get</h2>
-            <p className="mt-2 text-slate-500">Everything a Ghanaian teacher needs — in one members-only portal.</p>
+            <h2 className="text-2xl font-bold text-slate-900">How it works</h2>
+            <p className="mt-2 text-slate-500">
+              Three clicks between you and a finished scheme.
+            </p>
           </div>
           <div className="mt-10 grid gap-6 sm:grid-cols-3">
-            {features.map((f) => (
-              <div key={f.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50">
-                  {f.icon}
+            {STEPS.map((s) => (
+              <div key={s.n} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-base font-bold text-white">
+                  {s.n}
                 </div>
-                <h3 className="font-semibold text-slate-900">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{f.body}</p>
+                <h3 className="font-semibold text-slate-900">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{s.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── About ── */}
-      <section id="about" className="py-16">
-        <div className="mx-auto max-w-3xl px-4 text-center">
-          <h2 className="text-2xl font-bold text-slate-900">About the consortium</h2>
-          <p className="mt-4 leading-relaxed text-slate-600">
-            The portal is reserved for vetted members of the consortium.
-            Teachers apply with their school and subjects; an administrator
-            reviews and approves each application. Once approved, members gain
-            access to the curriculum library, the shared lesson-plan bank and
-            the teacher network. Our curriculum reference follows the official
-            National Council for Curriculum and Assessment (NaCCA) documents of
-            the Ministry of Education, Republic of Ghana.
+      {/* ── Sample ── */}
+      <section id="sample" className="py-16">
+        <div className="mx-auto max-w-4xl px-4">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-slate-900">This is what you get</h2>
+            <p className="mx-auto mt-2 max-w-2xl text-slate-500">
+              A real generated scheme. Your school, class, name and year are
+              printed on the cover — not left blank for you to fill in.
+            </p>
+          </div>
+          <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+            <img
+              src="/samples/scheme-sample.jpg"
+              alt="A generated Scheme of Learning showing the cover page with school and teacher details, and a week-by-week table of strands, content standards and indicators"
+              className="w-full"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ── The library ── */}
+      <section id="library" className="border-t border-slate-100 bg-slate-50 py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-slate-900">What it&rsquo;s built on</h2>
+            <p className="mt-2 text-slate-500">
+              Every document is generated from a mapped curriculum library — not
+              written from scratch each time.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {STATS.map((s) => (
+              <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+                <p className="text-3xl font-extrabold text-indigo-700">{s.value}</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{s.label}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mx-auto mt-8 max-w-3xl text-center text-sm leading-relaxed text-slate-500">
+            Curriculum reference follows the official National Council for
+            Curriculum and Assessment (NaCCA) documents of the Ministry of
+            Education, Republic of Ghana.
           </p>
         </div>
       </section>
 
-      {/* ── Vacancies ── */}
-      <section className="border-t border-slate-100 py-16">
+      {/* ── Why not printed ── */}
+      <section className="py-16">
+        <div className="mx-auto max-w-5xl px-4">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-slate-900">Why not just buy a printed booklet?</h2>
+            <p className="mt-2 text-slate-500">
+              An honest comparison — because you can, and plenty of teachers do.
+            </p>
+          </div>
+          <div className="mt-8 grid gap-6 sm:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <h3 className="font-semibold text-slate-500">A printed booklet</h3>
+              <ul className="mt-4 space-y-2">
+                {CONTRAST.printed.map((t) => (
+                  <Cross key={t}>{t}</Cross>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-6">
+              <h3 className="font-semibold text-indigo-900">Generated with Beacon</h3>
+              <ul className="mt-4 space-y-2">
+                {CONTRAST.beacon.map((t) => (
+                  <Check key={t}>{t}</Check>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── For headteachers — a door, not a second audience ── */}
+      <section className="border-t border-slate-100 bg-slate-50 py-12">
         <div className="mx-auto max-w-3xl px-4 text-center">
-          <h2 className="text-2xl font-bold text-slate-900">Teaching vacancies</h2>
-          <p className="mt-4 leading-relaxed text-slate-600">
-            Schools in the consortium advertise open teaching positions right
-            here on the website. Browse current openings, or join the network
-            to post vacancies from your own school.
+          <h2 className="text-lg font-bold text-slate-900">
+            Headteacher or proprietor?
+          </h2>
+          <p className="mt-3 leading-relaxed text-slate-600">
+            Your teachers can each have this. If you would like your whole staff
+            set up — with your school&rsquo;s name on every document they produce
+            — send us a message and we&rsquo;ll arrange it.
           </p>
-          <Link
-            to="/vacancies"
-            className="mt-5 inline-block rounded-lg bg-amber-500 px-6 py-3 text-sm font-semibold text-white hover:bg-amber-600"
+          <a
+            href="#contact"
+            className="mt-5 inline-block rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
           >
-            View open vacancies
-          </Link>
+            Talk to us about your school
+          </a>
         </div>
       </section>
 
       {/* ── Contact ── */}
-      <section id="contact" className="border-t border-slate-100 bg-slate-50 py-16">
+      <section id="contact" className="border-t border-slate-100 py-16">
         <div className="mx-auto max-w-3xl px-4">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-slate-900">Contact us</h2>
             <p className="mt-3 text-slate-600">
-              Questions about membership or the consortium? Send a message and we’ll reply
-              by email.
+              Questions about the generator, your subjects, or setting up a
+              school? Send a message and we&rsquo;ll reply by email.
             </p>
           </div>
 
