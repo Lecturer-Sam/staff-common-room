@@ -18,13 +18,15 @@ node_modules/
 build/
 .vite/
 
-# Yarn Berry — commit .yarnrc.yml, ignore the generated cache and state
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
+# Yarn Berry — commit .yarnrc.yml, ignore the generated cache and state.
+# Patterns containing a slash are anchored to the repo root, so these need
+# a leading ** to also match app/.yarn/ (the one that actually exists).
+**/.yarn/*
+!**/.yarn/patches
+!**/.yarn/plugins
+!**/.yarn/releases
+!**/.yarn/sdks
+!**/.yarn/versions
 .pnp.*
 
 # Environment / secrets — never commit Firebase keys
