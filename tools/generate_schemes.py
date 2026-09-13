@@ -380,7 +380,17 @@ def term_table(doc, rows):
     return table
 
 
-def cover(doc, subject_name, grade):
+def field(label, value, width=22):
+    """'School: Achimota' when the caller supplies one, 'School: ______' when not.
+
+    Documents generated for a school are pre-printed with its details; every
+    field falls back to a handwritten blank so plain CLI output is unchanged.
+    """
+    return f"{label}: {value}" if value else f"{label}: {'_' * width}"
+
+
+def cover(doc, subject_name, grade, school=None, teacher=None,
+          class_name=None, term=None, year=None, hod=None):
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_after = Pt(6)
@@ -403,20 +413,22 @@ def cover(doc, subject_name, grade):
 
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(2)
-    styled(p, "School: ______________________________________      "
-              "Term: ______      Year: __________", size=10, bold=True)
+    styled(p, f"{field('School', school, 38)}      "
+              f"{field('Term', term, 6)}      {field('Year', year, 10)}",
+           size=10, bold=True)
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(2)
-    styled(p, "Class: ____________      Teacher: ______________________      "
-              "HoD: ____________________", size=10, bold=True)
+    styled(p, f"{field('Class', class_name, 12)}      "
+              f"{field('Teacher', teacher)}      {field('HoD', hod, 20)}",
+           size=10, bold=True)
     p = doc.add_paragraph()
     styled(p, "Signature: ____________________      Date: ____________________",
            size=10, bold=True)
 
 
-def build_docx(subject_name, grade, scheme, path, per_term=False):
+def build_docx(subject_name, grade, scheme, path, per_term=False, **branding):
     doc = new_landscape_doc()
-    cover(doc, subject_name, grade)
+    cover(doc, subject_name, grade, **branding)
 
     for term in sorted(scheme, key=lambda t: int(t)):
         doc.add_page_break()
@@ -432,7 +444,8 @@ def build_docx(subject_name, grade, scheme, path, per_term=False):
     return path
 
 
-def build_term_docx(subject_name, grade, term, rows, path):
+def build_term_docx(subject_name, grade, term, rows, path,
+                    school=None, teacher=None, class_name=None, year=None):
     doc = new_landscape_doc()
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -446,8 +459,9 @@ def build_term_docx(subject_name, grade, term, rows, path):
 
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(6)
-    styled(p, "School: ______________________________      Class: __________      "
-              "Year: __________      Teacher: ______________________", size=9, bold=True)
+    styled(p, f"{field('School', school, 30)}      {field('Class', class_name, 10)}      "
+              f"{field('Year', year, 10)}      {field('Teacher', teacher, 22)}",
+           size=9, bold=True)
     term_table(doc, rows)
 
     p = doc.add_paragraph()
@@ -472,7 +486,20 @@ def main():
     ap.add_argument("--with-descriptions", action="store_true",
                     help="include content-standard / indicator text, not just codes")
     ap.add_argument("--out", default=None, help="output directory")
+    # Branding — pre-print the cover for a specific school. Every field is
+    # optional and falls back to a handwritten blank.
+    ap.add_argument("--school", help="pre-print the school name on the cover")
+    ap.add_argument("--teacher", help="pre-print the teacher's name")
+    ap.add_argument("--class-name", dest="class_name",
+                    help="pre-print the class, e.g. 'Basic 4'")
+    ap.add_argument("--term", help="pre-print the term")
+    ap.add_argument("--year", help="pre-print the academic year")
+    ap.add_argument("--hod", help="pre-print the Head of Department")
     args = ap.parse_args()
+
+    branding = {k: v for k, v in dict(
+        school=args.school, teacher=args.teacher, class_name=args.class_name,
+        term=args.term, year=args.year, hod=args.hod).items() if v}
 
     global OUT, JSON_OUT, DOCX_OUT
     if args.out:
@@ -504,7 +531,7 @@ def main():
         # ---- DOCX (one book per subject-grade)
         safe = subject_name.replace(" ", "_").replace("&", "and")
         docx_path = DOCX_OUT / f"Scheme_of_Learning_{safe}_Basic{grade[1:]}.docx"
-        build_docx(subject_name, grade, scheme, docx_path)
+        build_docx(subject_name, grade, scheme, docx_path, **branding)
 
         # ---- optional per-term documents
         if args.per_term:
@@ -513,6 +540,8 @@ def main():
                     subject_name, grade, term, rows,
                     DOCX_OUT / "terms" /
                     f"Scheme_of_Learning_{safe}_Basic{grade[1:]}_Term{term}.docx",
+                    school=args.school, teacher=args.teacher,
+                    class_name=args.class_name, year=args.year,
                 )
 
         # ---- JSON for the app

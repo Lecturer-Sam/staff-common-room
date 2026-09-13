@@ -1,0 +1,18 @@
+# Keep the build context small — node_modules alone is tens of megabytes and
+# none of it is needed to generate documents.
+node_modules/
+.git/
+app/node_modules/
+dist/
+.yarn/
+.saas-reference/
+venv/
+__pycache__/
+*.pyc
+*.tmp
+~$*.docx
+
+# Everything else under app/ is only needed for app/data, which is copied
+# explicitly in the Dockerfile.
+app/*
+!app/data

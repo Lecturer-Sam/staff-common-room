@@ -54,6 +54,7 @@ from generate_schemes import (  # noqa: E402
     add_rule,
     cell_text,
     discover,
+    field,
     set_widths,
     shade,
     styled,
@@ -223,7 +224,8 @@ def table_for(doc, rows):
     return table
 
 
-def cover(doc, subject_name, grade):
+def cover(doc, subject_name, grade, school=None, teacher=None,
+          class_name=None, term=None, year=None):
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_after = Pt(2)
@@ -236,10 +238,10 @@ def cover(doc, subject_name, grade):
            size=12, bold=True)
 
     for label in [
-        "School: ______________________________________      "
-        "Class: ____________      Academic Year: __________",
-        "Teacher: ____________________________________      "
-        "Subject: ______________________      Term: ______",
+        f"{field('School', school, 38)}      "
+        f"{field('Class', class_name, 12)}      {field('Academic Year', year, 10)}",
+        f"{field('Teacher', teacher, 36)}      "
+        f"Subject: {subject_name}      {field('Term', term, 6)}",
     ]:
         p = doc.add_paragraph()
         p.paragraph_format.space_after = Pt(2)
@@ -272,9 +274,9 @@ def signatures(doc):
            size=9, bold=True)
 
 
-def build_docx(subject_name, grade, terms_rows, path):
+def build_docx(subject_name, grade, terms_rows, path, **branding):
     doc = new_doc()
-    cover(doc, subject_name, grade)
+    cover(doc, subject_name, grade, **branding)
     for term in sorted(terms_rows, key=lambda t: int(t)):
         doc.add_page_break()
         p = doc.add_paragraph()
@@ -297,7 +299,18 @@ def main():
     ap.add_argument("--subject")
     ap.add_argument("--per-term", action="store_true")
     ap.add_argument("--out")
+    # Branding — pre-print the cover for a specific school (optional).
+    ap.add_argument("--school", help="pre-print the school name on the cover")
+    ap.add_argument("--teacher", help="pre-print the teacher's name")
+    ap.add_argument("--class-name", dest="class_name",
+                    help="pre-print the class, e.g. 'Basic 4'")
+    ap.add_argument("--term", help="pre-print the term")
+    ap.add_argument("--year", help="pre-print the academic year")
     args = ap.parse_args()
+
+    branding = {k: v for k, v in dict(
+        school=args.school, teacher=args.teacher, class_name=args.class_name,
+        term=args.term, year=args.year).items() if v}
 
     global OUT, JSON_OUT, DOCX_OUT
     if args.out:
@@ -336,7 +349,7 @@ def main():
 
         safe = subject_name.replace(" ", "_").replace("&", "and")
         docx_path = DOCX_OUT / f"Record_of_Work_{safe}_Basic{grade[1:]}.docx"
-        build_docx(subject_name, grade, terms_rows, docx_path)
+        build_docx(subject_name, grade, terms_rows, docx_path, **branding)
 
         if args.per_term:
             for term, rows in terms_rows.items():
@@ -351,9 +364,10 @@ def main():
                        size=11, bold=True)
                 p = d.add_paragraph()
                 p.paragraph_format.space_after = Pt(4)
-                styled(p, "School: ____________________________      "
-                          "Class: __________      Teacher: ______________________      "
-                          "Year: __________", size=9, bold=True)
+                styled(p, f"{field('School', args.school, 30)}      "
+                          f"{field('Class', args.class_name, 10)}      "
+                          f"{field('Teacher', args.teacher, 22)}      "
+                          f"{field('Year', args.year, 10)}", size=9, bold=True)
                 table_for(d, rows)
                 signatures(d)
                 d.save(DOCX_OUT / "terms" /
