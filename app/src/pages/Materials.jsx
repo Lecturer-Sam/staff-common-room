@@ -52,7 +52,7 @@ function describe(entry) {
 }
 
 export default function Materials() {
-  const { user, profile } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
   const toast = useToast()
 
   const schoolId = profile?.schoolId ?? null
@@ -320,9 +320,15 @@ export default function Materials() {
       </Card>
 
       <div className="mb-8 flex flex-wrap items-center gap-3">
+        {/*
+          Wait for auth to resolve, not just the catalog. Generating before the
+          profile loads would send schoolId: null, and the rules pin schoolId
+          to the caller's real school — so the download would succeed but the
+          history write would be denied.
+        */}
         <Button
           onClick={handleGenerate}
-          disabled={busy || serviceDown || !catalog}
+          disabled={busy || serviceDown || !catalog || authLoading}
         >
           {busy ? 'Generating…' : 'Generate and download'}
         </Button>
