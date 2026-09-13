@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { db } from '../firebase'
 import { Button, Card, Field, Input, PageHeader, Select } from '../components/ui'
 import { fetchCatalog, generateAndDownload } from '../lib/materialService'
+import { listMyGenerations, recordGeneration } from '../lib/generatedMaterials'
 
 /**
  * Generate Materials — the portal's front door to the Python generators.
  *
  * A school picks a grade and subject and gets a Scheme of Learning or Record of
  * Work pre-printed with its own details. The heavy lifting happens in the
- * Material Service (service/main.py); this page only collects the parameters
- * and hands the file to the browser.
+ * Material Service (service/main.py); this page collects the parameters, hands
+ * the file to the browser, and records what was produced so the school
+ * workspace can show it.
  */
 
 const KIND_OPTIONS = [
@@ -31,9 +35,27 @@ const WAIT_HINT = {
   record: 'A record of work takes a few seconds.',
 }
 
+function fmtWhen(ts) {
+  if (!ts?.seconds) return ''
+  return new Date(ts.seconds * 1000).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+function describe(entry) {
+  const what = entry.kind === 'scheme' ? 'Scheme' : 'Record'
+  const grade = (entry.grade ?? '').replace('B', 'Basic ')
+  const term = entry.term ? ` · Term ${entry.term}` : ' · Full year'
+  return `${what} · ${grade}${term}`
+}
+
 export default function Materials() {
   const { user, profile } = useAuth()
   const toast = useToast()
+
+  const schoolId = profile?.schoolId ?? null
 
   const [catalog, setCatalog] = useState(null)
   const [catalogError, setCatalogError] = useState('')
@@ -43,13 +65,14 @@ export default function Materials() {
   const [subject, setSubject] = useState('') // '' = every subject in the grade
   const [term, setTerm] = useState('')
 
-  const [school, setSchool] = useState('')
+  const [schoolName, setSchoolName] = useState('')
   const [teacher, setTeacher] = useState(profile?.displayName ?? '')
   const [className, setClassName] = useState('')
   const [year, setYear] = useState('')
   const [hod, setHod] = useState('')
 
   const [busy, setBusy] = useState(false)
+  const [history, setHistory] = useState(null)
 
   // Effects are for external sync only — see docs/conventions.md.
   useEffect(() => {
@@ -62,6 +85,33 @@ export default function Materials() {
     }
   }, [])
 
+  // Members of a school get its name pre-filled and locked. Free text would
+  // let anyone print another school's name on a document, which would also
+  // poison the school's generation history.
+  useEffect(() => {
+    if (!schoolId) return
+    let active = true
+    getDoc(doc(db, 'schools', schoolId))
+      .then((snap) => {
+        if (active && snap.exists()) setSchoolName(snap.data().name ?? '')
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [schoolId])
+
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    listMyGenerations(user.uid)
+      .then((list) => active && setHistory(list))
+      .catch(() => active && setHistory([]))
+    return () => {
+      active = false
+    }
+  }, [user])
+
   // Adjust state during render, not in an effect: changing the grade can
   // invalidate the chosen subject, so clear it the moment the grade changes.
   const [lastGrade, setLastGrade] = useState(grade)
@@ -72,6 +122,7 @@ export default function Materials() {
 
   const subjects = catalog?.grades?.[grade] ?? []
   const allSubjects = subject === ''
+  const schoolLocked = Boolean(schoolId)
 
   async function handleGenerate() {
     setBusy(true)
@@ -79,7 +130,7 @@ export default function Materials() {
       const request = { kind, grade, term: term || undefined }
       if (subject) request.subject = subject
       // Branding is optional; omitted fields fall back to blank cover lines.
-      if (school) request.school = school
+      if (schoolName) request.school = schoolName
       if (teacher) request.teacher = teacher
       if (className) request.class_name = className
       if (year) request.year = year
@@ -93,6 +144,16 @@ export default function Materials() {
           ? `Downloaded ${filename} — one document per subject.`
           : `Downloaded ${filename}`,
       )
+
+      // Record it. A failure here must not undo a successful download, so it
+      // is reported separately and never thrown.
+      try {
+        await recordGeneration({ user, schoolId, request, filename, isZip })
+        const list = await listMyGenerations(user.uid)
+        setHistory(list)
+      } catch {
+        toast.error('Downloaded, but could not save it to your history.')
+      }
     } catch (err) {
       // 503/500 from the service carry a useful `detail`; surface it.
       toast.error(err.message || 'Generation failed.')
@@ -204,12 +265,17 @@ export default function Materials() {
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="School" htmlFor="school">
+          <Field
+            label="School"
+            htmlFor="school"
+            hint={schoolLocked ? 'Taken from your school profile' : undefined}
+          >
             <Input
               id="school"
-              value={school}
-              onChange={(e) => setSchool(e.target.value)}
-              placeholder="e.g. Achimota School"
+              value={schoolName}
+              onChange={(e) => setSchoolName(e.target.value)}
+              disabled={schoolLocked}
+              placeholder={schoolLocked ? '' : 'e.g. Achimota School'}
             />
           </Field>
 
@@ -253,7 +319,7 @@ export default function Materials() {
         </div>
       </Card>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="mb-8 flex flex-wrap items-center gap-3">
         <Button
           onClick={handleGenerate}
           disabled={busy || serviceDown || !catalog}
@@ -266,6 +332,39 @@ export default function Materials() {
             : WAIT_HINT[kind]}
         </span>
       </div>
+
+      <Card>
+        <h2 className="section-heading mb-3">Your recent downloads</h2>
+        {history === null ? (
+          <p className="card-meta">Loading…</p>
+        ) : history.length === 0 ? (
+          <p className="card-meta">
+            Nothing yet. Anything you generate is listed here and in your
+            school&rsquo;s workspace.
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {history.map((entry) => (
+              <li
+                key={entry.id}
+                className="flex flex-wrap items-baseline justify-between gap-2 py-2"
+              >
+                <span className="text-sm text-slate-800">
+                  {describe(entry)}
+                  {entry.isZip && (
+                    <span className="ml-2 text-xs text-slate-400">
+                      all subjects
+                    </span>
+                  )}
+                </span>
+                <span className="text-xs text-slate-400">
+                  {fmtWhen(entry.createdAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   )
 }

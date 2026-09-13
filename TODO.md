@@ -30,13 +30,15 @@ where the big bets live.
 
 ## Next — compounds what's built
 
-- [ ] **Generation history in the school workspace.** Generated documents
-      currently stream to the browser and vanish; a school cannot see what its
-      teachers produced last term. This is the "proof of what's taught" half of
-      the promise. See `docs/SCHOOL_WORKSPACE.md`.
-- [ ] **Bind cover branding to the caller's school.** `Materials.jsx` sends
-      whatever the user types. Before charging anyone, take the school name from
-      the caller's own record, not the request body.
+- [x] **Generation history in the school workspace** — done 2026-09-13.
+      `generated_materials` collection, recorded on download, listed in the
+      workspace and on the Generate screen. See `docs/SCHOOL_WORKSPACE.md`.
+- [x] **Bind cover branding to the caller's school** — done 2026-09-13. Members
+      of a school get its name pre-filled and the field disabled, so a document
+      cannot be printed under another school's name.
+- [ ] **Store generated documents, not just their metadata.** History is
+      metadata only — there is no re-download. Persisting the `.docx` needs
+      Cloud Storage, which needs `storage.rules`.
 - [ ] **Chunk the 38 MB curriculum bundle** into per-grade-subject files
       (~50 KB). Blocks usable mobile performance and matters for offline packs.
 - [ ] **Enable `REQUIRE_AUTH=1`** on the deployed Material Service. Currently

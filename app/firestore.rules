@@ -136,6 +136,30 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.authorId) || isAdmin();
     }
 
+    // ── Generated materials (Material Service history) ────────────────────
+    // What a school's teachers produced with the Generate screen.
+    //
+    // schoolId is pinned to the caller's own school at create time, so a
+    // member cannot file a document under another school's history, and
+    // authorId must be the caller so nobody can attribute work to someone
+    // else. Records are immutable — no update, only delete by the author or
+    // a platform admin.
+    //
+    // The null guard on the read path matters: without it, two school-less
+    // users would both match `null == null` and could read each other's
+    // history.
+    match /generated_materials/{materialId} {
+      allow read: if isSignedIn()
+        && (isOwner(resource.data.authorId)
+            || (resource.data.get('schoolId', null) != null
+                && resource.data.schoolId == userSchoolId())
+            || isAdmin());
+      allow create: if isApprovedOrAdmin()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.schoolId == userSchoolId();
+      allow delete: if isOwner(resource.data.authorId) || isAdmin();
+    }
+
     // ── Progress tracker ──────────────────────────────────────────────────
     match /progress/{uid} {
       // Owner-only writes; reads also open to members of the owner's school
