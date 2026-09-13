@@ -18,6 +18,9 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] })
   ],
   server: {
+    // Vite blocks unknown hosts by default, which stops the hosted dev preview
+    // from loading. Dev-server only — this has no effect on `vite build`.
+    allowedHosts: true,
     proxy: {
       // Keeps the browser on a single origin, so no CORS setup is needed.
       '/materials': {
