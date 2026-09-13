@@ -47,6 +47,7 @@ import SchoolWorkspace from './pages/SchoolWorkspace'
 import Classrooms from './pages/Classrooms'
 import Learn from './pages/student/Learn'
 import QuizPlayer from './pages/student/QuizPlayer'
+import Materials from './pages/Materials'
 
 
 function ProtectedLayout() {
@@ -122,6 +123,7 @@ export default function App() {
         <Route path="forecasts/:forecastId" element={<ForecastView />} />
         <Route path="forecasts/:forecastId/edit" element={<ForecastForm />} />
         <Route path="plans" element={<LessonPlans />} />
+        <Route path="materials" element={<Materials />} />
         <Route path="plans/new" element={<LessonPlanForm />} />
         <Route path="plans/:planId" element={<LessonPlanView />} />
         <Route path="plans/:planId/edit" element={<LessonPlanForm />} />

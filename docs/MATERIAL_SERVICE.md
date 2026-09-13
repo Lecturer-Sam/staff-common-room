@@ -181,6 +181,24 @@ VITE_MATERIALS_URL=https://beacon-materials-xxxxx-ew.a.run.app
 
 ---
 
+## Portal screen
+
+`app/src/pages/Materials.jsx`, routed at `/portal/materials`, linked in the
+sidebar as **Generate**.
+
+It loads `/catalog` to populate the grade and subject dropdowns, collects the
+branding fields, and downloads the result. Changing grade clears the selected
+subject, since subject keys differ per grade.
+
+Behaviour worth knowing:
+
+- **Subject is optional** — leaving it on "All subjects" downloads a `.zip`
+  with one document per subject in the grade.
+- **Term is optional** — "Full year" produces the combined document.
+- **HoD appears only for schemes**, since record covers have no such field.
+- **Service unavailable** disables the form and explains how to start it,
+  rather than failing at click time.
+
 ## Files
 
 | Path | Purpose |
@@ -190,15 +208,16 @@ VITE_MATERIALS_URL=https://beacon-materials-xxxxx-ew.a.run.app
 | `service/Dockerfile` | Container for Cloud Run |
 | `service/.dockerignore` | Keeps `node_modules` out of the build context |
 | `app/src/lib/materialService.js` | Browser client (catalog, generate, download) |
+| `app/src/pages/Materials.jsx` | The generate-materials screen |
 | `app/vite.config.js` | Dev proxy at `/materials` |
 
 ---
 
 ## Not built yet
 
-- **No UI.** The client library exists; no page calls it yet. Next step is a
-  "Generate materials" screen in the school workspace.
 - **No persistence.** Generated files are streamed to the browser and not saved.
   The school workspace should keep a history of what each teacher produced.
 - **No quota or rate limiting.** `REQUIRE_AUTH` is the only guard.
 - **No PDF output.** `.docx` only; the DOCX→PDF path is separate.
+- **Branding is not bound to the caller's school.** The page sends whatever the
+  user types. See the Security section before charging customers.

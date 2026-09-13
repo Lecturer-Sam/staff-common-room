@@ -445,7 +445,8 @@ def build_docx(subject_name, grade, scheme, path, per_term=False, **branding):
 
 
 def build_term_docx(subject_name, grade, term, rows, path,
-                    school=None, teacher=None, class_name=None, year=None):
+                    school=None, teacher=None, class_name=None, year=None,
+                    hod=None):
     doc = new_landscape_doc()
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -466,8 +467,8 @@ def build_term_docx(subject_name, grade, term, rows, path,
 
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(8)
-    styled(p, "Prepared by: ____________________      HoD: ____________________      "
-              "Date: ____________", size=9, bold=True)
+    styled(p, f"{field('Prepared by', teacher, 20)}      "
+              f"{field('HoD', hod, 20)}      Date: ____________", size=9, bold=True)
     doc.save(path)
     return path
 
@@ -541,7 +542,7 @@ def main():
                     DOCX_OUT / "terms" /
                     f"Scheme_of_Learning_{safe}_Basic{grade[1:]}_Term{term}.docx",
                     school=args.school, teacher=args.teacher,
-                    class_name=args.class_name, year=args.year,
+                    class_name=args.class_name, year=args.year, hod=args.hod,
                 )
 
         # ---- JSON for the app

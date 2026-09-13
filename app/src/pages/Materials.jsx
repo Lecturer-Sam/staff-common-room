@@ -1,0 +1,271 @@
+import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { Button, Card, Field, Input, PageHeader, Select } from '../components/ui'
+import { fetchCatalog, generateAndDownload } from '../lib/materialService'
+
+/**
+ * Generate Materials — the portal's front door to the Python generators.
+ *
+ * A school picks a grade and subject and gets a Scheme of Learning or Record of
+ * Work pre-printed with its own details. The heavy lifting happens in the
+ * Material Service (service/main.py); this page only collects the parameters
+ * and hands the file to the browser.
+ */
+
+const KIND_OPTIONS = [
+  { value: 'scheme', label: 'Scheme of Learning' },
+  { value: 'record', label: 'Record of Work' },
+]
+
+const TERM_OPTIONS = [
+  { value: '', label: 'Full year (all three terms)' },
+  { value: '1', label: 'Term 1' },
+  { value: '2', label: 'Term 2' },
+  { value: '3', label: 'Term 3' },
+]
+
+// Rough generation times, shown so the wait feels expected rather than broken.
+const WAIT_HINT = {
+  scheme: 'A scheme takes about a second.',
+  record: 'A record of work takes a few seconds.',
+}
+
+export default function Materials() {
+  const { user, profile } = useAuth()
+  const toast = useToast()
+
+  const [catalog, setCatalog] = useState(null)
+  const [catalogError, setCatalogError] = useState('')
+
+  const [kind, setKind] = useState('scheme')
+  const [grade, setGrade] = useState('B4')
+  const [subject, setSubject] = useState('') // '' = every subject in the grade
+  const [term, setTerm] = useState('')
+
+  const [school, setSchool] = useState('')
+  const [teacher, setTeacher] = useState(profile?.displayName ?? '')
+  const [className, setClassName] = useState('')
+  const [year, setYear] = useState('')
+  const [hod, setHod] = useState('')
+
+  const [busy, setBusy] = useState(false)
+
+  // Effects are for external sync only — see docs/conventions.md.
+  useEffect(() => {
+    let active = true
+    fetchCatalog()
+      .then((data) => active && setCatalog(data))
+      .catch((err) => active && setCatalogError(err.message || 'unavailable'))
+    return () => {
+      active = false
+    }
+  }, [])
+
+  // Adjust state during render, not in an effect: changing the grade can
+  // invalidate the chosen subject, so clear it the moment the grade changes.
+  const [lastGrade, setLastGrade] = useState(grade)
+  if (grade !== lastGrade) {
+    setLastGrade(grade)
+    setSubject('')
+  }
+
+  const subjects = catalog?.grades?.[grade] ?? []
+  const allSubjects = subject === ''
+
+  async function handleGenerate() {
+    setBusy(true)
+    try {
+      const request = { kind, grade, term: term || undefined }
+      if (subject) request.subject = subject
+      // Branding is optional; omitted fields fall back to blank cover lines.
+      if (school) request.school = school
+      if (teacher) request.teacher = teacher
+      if (className) request.class_name = className
+      if (year) request.year = year
+      if (hod && kind === 'scheme') request.hod = hod
+
+      const idToken = await user?.getIdToken?.()
+      const { filename, isZip } = await generateAndDownload(request, idToken)
+
+      toast.success(
+        isZip
+          ? `Downloaded ${filename} — one document per subject.`
+          : `Downloaded ${filename}`,
+      )
+    } catch (err) {
+      // 503/500 from the service carry a useful `detail`; surface it.
+      toast.error(err.message || 'Generation failed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const serviceDown = Boolean(catalogError)
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-6">
+      <PageHeader
+        title="Generate materials"
+        subtitle="Produce a Scheme of Learning or Record of Work for your class, pre-printed with your school's details."
+      />
+
+      {serviceDown && (
+        <Card className="mb-6 border-amber-300 bg-amber-50">
+          <p className="text-sm font-semibold text-amber-900">
+            The material service is unavailable.
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-amber-800">
+            {catalogError}. Make sure it is running locally
+            (<code>python service/main.py</code>) or that{' '}
+            <code>VITE_MATERIALS_URL</code> points at the deployed service.
+          </p>
+        </Card>
+      )}
+
+      <Card className="mb-6">
+        <h2 className="section-heading mb-4">What to generate</h2>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Document type" htmlFor="kind">
+            <Select
+              id="kind"
+              value={kind}
+              onChange={(e) => setKind(e.target.value)}
+            >
+              {KIND_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field
+            label="Grade"
+            htmlFor="grade"
+            hint={catalog ? `${subjects.length} subjects available` : 'Loading…'}
+          >
+            <Select
+              id="grade"
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+              disabled={!catalog}
+            >
+              {Object.keys(catalog?.grades ?? {}).map((g) => (
+                <option key={g} value={g}>
+                  {g.replace('B', 'Basic ')}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field
+            label="Subject"
+            htmlFor="subject"
+            hint={allSubjects ? 'Downloads one document per subject' : undefined}
+          >
+            <Select
+              id="subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              disabled={!catalog}
+            >
+              <option value="">All subjects in this grade</option>
+              {subjects.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Term" htmlFor="term">
+            <Select
+              id="term"
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+            >
+              {TERM_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+      </Card>
+
+      <Card className="mb-6">
+        <h2 className="section-heading mb-1">Printed on the cover</h2>
+        <p className="card-meta mb-4">
+          Optional. Anything you leave blank prints as a line for teachers to
+          fill in by hand.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="School" htmlFor="school">
+            <Input
+              id="school"
+              value={school}
+              onChange={(e) => setSchool(e.target.value)}
+              placeholder="e.g. Achimota School"
+            />
+          </Field>
+
+          <Field label="Class" htmlFor="class">
+            <Input
+              id="class"
+              value={className}
+              onChange={(e) => setClassName(e.target.value)}
+              placeholder="e.g. Basic 4"
+            />
+          </Field>
+
+          <Field label="Teacher" htmlFor="teacher">
+            <Input
+              id="teacher"
+              value={teacher}
+              onChange={(e) => setTeacher(e.target.value)}
+              placeholder="e.g. Mr. K. Mensah"
+            />
+          </Field>
+
+          <Field label="Academic year" htmlFor="year">
+            <Input
+              id="year"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              placeholder="e.g. 2026"
+            />
+          </Field>
+
+          {kind === 'scheme' && (
+            <Field label="Head of Department" htmlFor="hod">
+              <Input
+                id="hod"
+                value={hod}
+                onChange={(e) => setHod(e.target.value)}
+                placeholder="Signs the completed scheme"
+              />
+            </Field>
+          )}
+        </div>
+      </Card>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          onClick={handleGenerate}
+          disabled={busy || serviceDown || !catalog}
+        >
+          {busy ? 'Generating…' : 'Generate and download'}
+        </Button>
+        <span className="card-meta">
+          {allSubjects
+            ? `One ${kind === 'scheme' ? 'scheme' : 'record'} per subject, zipped.`
+            : WAIT_HINT[kind]}
+        </span>
+      </div>
+    </div>
+  )
+}
