@@ -12,7 +12,6 @@ __pycache__/
 *.tmp
 ~$*.docx
 
-# Everything else under app/ is only needed for app/data, which is copied
-# explicitly in the Dockerfile.
-app/*
-!app/data
+# The whole of app/ is now unneeded: the curriculum data that used to live at
+# app/data/ moved to data/reference/ and is copied with the rest of data/.
+app/

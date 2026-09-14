@@ -105,7 +105,9 @@ def has_docx() -> bool:
 
 
 def data_file_count() -> int:
-    return len(list(ROOT.glob("*_lessons_enriched.json")))
+    # Lesson files live in data/lessons/ since the restructure; the repo
+    # root is no longer where data is kept.
+    return len(list((ROOT / "data" / "lessons").glob("*_lessons_enriched.json")))
 
 
 def subject_keys() -> set[str]:

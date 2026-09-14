@@ -3,11 +3,12 @@
 # Build from the repo root so the curriculum data is in the build context:
 #     docker build -f service/Dockerfile -t beacon-materials .
 #
-# The generators read from two places, discovered at runtime relative to the
-# repo root:
-#     ./*_lessons_enriched.json       (73 files, ~34 MB)
-#     ./app/data/*                    (curriculum DBs + 2 enriched files)
-# Both are copied in, so the image is self-contained and needs no volume mount.
+# The generators read from data/, discovered at runtime relative to the repo
+# root (see tools/_paths.py):
+#     ./data/lessons/     73 enriched lesson files (~34 MB)
+#     ./data/curriculum/  148 curriculum databases
+#     ./data/reference/   second copy of the curriculum databases
+# All are copied in, so the image is self-contained and needs no volume mount.
 
 FROM python:3.11-slim
 
@@ -20,9 +21,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Generators + the curriculum data they read.
 COPY tools/ ./tools/
-COPY *_lessons_enriched.json ./
-COPY *_curriculum_db_clean.json ./
-COPY app/data/ ./app/data/
+COPY data/ ./data/
 
 COPY service/ ./service/
 
