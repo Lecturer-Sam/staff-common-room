@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "yarn curriculum && vite build",
     "lint": "eslint .",
     "curriculum": "python3 ../tools/build_app_curriculum.py",
     "validate:curriculum": "python3 ../tools/validate_app_curriculum.py",
