@@ -148,7 +148,7 @@ const STEPS = [
 
 const STATS = [
   { value: '13,140', label: 'curriculum-aligned lesson plans behind the generator' },
-  { value: '1,791', label: 'NaCCA indicators, coded strand to indicator' },
+  { value: '4,040', label: 'NaCCA indicators, coded strand to indicator' },
   { value: 'B1–B9', label: 'every grade, 13 subjects' },
   { value: '180', label: 'teaching days mapped per subject, per year' },
 ]

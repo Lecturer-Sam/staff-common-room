@@ -167,16 +167,23 @@ erDiagram
 |---|---|---|
 | Lesson objects | **13,140** | 73 `*_lessons_enriched.json` |
 | Subject-grade books | **73** | one per grade × subject |
-| Unique indicators | **1,791** | 75 `*_curriculum_db_clean.json` |
-| Content standards | **670** | same |
-| Sub-strands | **1,112** | same (per-file) |
+| Indicators served by the app | **4,040** | `tools/build_app_curriculum.py` |
+| Curriculum DB files | **159** | 75 at root + 84 in `app/data/` |
+| Grades served | **11** | KG1, KG2, B1–B9 |
 | Source PDFs | **24** | root |
 
-> ⚠️ **Correction:** earlier documents (and the live homepage until
-> `8ba94bf`) claimed **4,040 indicators**. No count in this repository
-> supports that figure — 1,791 is the verified number. The homepage has
-> been corrected; `TODO.md`, `docs/APP_CURRICULUM.md` and
-> `docs/VISUALIZATION_ENGINE.md` still carry the old figure.
+> **On the 4,040 figure** — it is correct. It comes from
+> `tools/build_app_curriculum.py`, which counts indicator records per grade
+> across all 11 grades. Counting *unique codes* in the source databases
+> yields 2,519, a smaller number only because the same code legitimately
+> recurs across subject-grades. 4,040 is what the app actually serves, so
+> it is the honest figure for any claim about the library.
+
+> ⚠️ **Curriculum data lives in two places.** 75 `*_curriculum_db_clean.json`
+> files sit at the repo root and 84 more in `app/data/`. `DB_SEARCH` in
+> `tools/generate_schemes.py` searches both. This is the single most
+> important fact to know before moving any data — a restructure that moves
+> only the root files will silently drop the KG grades and several subjects.
 
 ---
 
