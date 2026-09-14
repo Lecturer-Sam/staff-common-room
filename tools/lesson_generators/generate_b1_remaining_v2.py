@@ -3,10 +3,10 @@ from collections import defaultdict, Counter
 from itertools import cycle
 
 subjects = [
-    {"key":"history","db":"/home/user/history_curriculum_db_clean.json","name":"History"},
-    {"key":"owop","db":"/home/user/owop_curriculum_db_clean.json","name":"Our World Our People"},
-    {"key":"rme","db":"/home/user/rme_curriculum_db_clean.json","name":"Religious and Moral Education"},
-    {"key":"creative_arts","db":"/home/user/creative_arts_curriculum_db_clean.json","name":"Creative Arts"},
+    {"key":"history","db":"history_curriculum_db_clean.json","name":"History"},
+    {"key":"owop","db":"owop_curriculum_db_clean.json","name":"Our World Our People"},
+    {"key":"rme","db":"rme_curriculum_db_clean.json","name":"Religious and Moral Education"},
+    {"key":"creative_arts","db":"creative_arts_curriculum_db_clean.json","name":"Creative Arts"},
 ]
 
 def build_one(subj):
@@ -115,7 +115,7 @@ def build_one(subj):
             "plenary":act["plenary"],
             "assessment":meta.get("assessment","Observation; oral questions; class exercise")
         })
-    out_path=f"/home/user/{subj['key']}_lessons_enriched.json"
+    out_path=f"{subj['key']}_lessons_enriched.json"
     with open(out_path,"w",encoding="utf-8") as out:
         json.dump(enriched,out,indent=2,ensure_ascii=False)
     print(f"✅ {subj['name']} → {len(enriched)} lessons → {out_path}")

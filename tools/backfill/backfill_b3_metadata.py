@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Backfill B3 Core-4 DBs (math, science, english, ghanaian) with authentic
 NaCCA text from source PDFs (ind_desc, cs_desc, numbered strand names)."""
+# --- resolve bare data filenames against data/ (see tools/_compat.py) ---
+import sys as _sys, pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[2] / "tools"))
+from _compat import open_compat; open_compat()
+# -----------------------------------------------------------------------
 import json, os, re, shutil, gzip, hashlib
 
-ROOT = '/home/user'
+ROOT = str(Path(__file__).resolve().parents[2])
 CACHE = os.path.join(ROOT, 'pdf_text_cache')
 BK = os.path.join(ROOT, 'audit_backup')
 
@@ -60,7 +65,7 @@ report = []
 for sid, g, pdf, label in JOBS:
     t = text_of(pdf)
     snames = strand_names(t)
-    path = os.path.join(ROOT, 'curriculum_db', f'{sid}_{g}_curriculum_db_clean.json')
+    path = os.path.join(ROOT, 'data/curriculum', f'{sid}_{g}_curriculum_db_clean.json')
     bak = os.path.join(BK, os.path.basename(path) + '.pre_b3backfill')
     if not os.path.exists(bak):
         shutil.copy2(path, bak)
@@ -108,7 +113,7 @@ for sid, g, n, i, c, s, misses, snames in report:
     print(f"   strand names: {snames}")
     if misses:
         print(f"   ! no ind text for {len(misses)}: {misses[:12]}")
-    db = json.load(open(os.path.join(ROOT, 'curriculum_db', f'{sid}_{g}_curriculum_db_clean.json')))
+    db = json.load(open(os.path.join(ROOT, 'data/curriculum', f'{sid}_{g}_curriculum_db_clean.json')))
     k0 = sorted(db)[0]
     print(f"   sample {k0}: ind={db[k0]['ind_desc'][:75]!r}")
     print(f"              cs={db[k0]['cs_desc'][:65]!r} strand={db[k0]['strand']!r}")

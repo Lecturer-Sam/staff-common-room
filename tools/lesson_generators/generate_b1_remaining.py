@@ -3,10 +3,10 @@ from collections import defaultdict, Counter
 from itertools import cycle
 
 subjects = [
-    {"key":"history","db":"/home/user/history_curriculum_db_clean.json","name":"History","subject_label":"History","period":30},
-    {"key":"owop","db":"/home/user/owop_curriculum_db_clean.json","name":"Our World Our People","subject_label":"Our World Our People","period":30},
-    {"key":"rme","db":"/home/user/rme_curriculum_db_clean.json","name":"Religious and Moral Education","subject_label":"Religious and Moral Education","period":30},
-    {"key":"creative_arts","db":"/home/user/creative_arts_curriculum_db_clean.json","name":"Creative Arts","subject_label":"Creative Arts","period":60},
+    {"key":"history","db":"history_curriculum_db_clean.json","name":"History","subject_label":"History","period":30},
+    {"key":"owop","db":"owop_curriculum_db_clean.json","name":"Our World Our People","subject_label":"Our World Our People","period":30},
+    {"key":"rme","db":"rme_curriculum_db_clean.json","name":"Religious and Moral Education","subject_label":"Religious and Moral Education","period":30},
+    {"key":"creative_arts","db":"creative_arts_curriculum_db_clean.json","name":"Creative Arts","subject_label":"Creative Arts","period":60},
 ]
 
 def build_lessons(subj):
@@ -198,6 +198,19 @@ def build_lessons(subj):
             "session_title": act["session_title"],
             "perf_indicator": act["perf_indicator"],
             "competencies": meta.get("competencies","Critical Thinking and Problem Solving; Communication and Collaboration; Creativity and Innovation; Cultural Identity and Global Citizenship; Personal Development and Leadership; Digital Literacy"),
+            "resources": meta.get("resources","NaCCA approved textbook; pictures; realia; ICT tools"),
+            "keywords": meta.get("keywords",subj["key"]),
+            "rpk": rpk,
+            "starter": act["starter"],
+            "main": act["main"],
+            "plenary": act["plenary"],
+            "assessment": meta.get("assessment","Observation; oral questions; class exercise")
+        })
+    out_path = f"{subj['key']}_lessons_enriched.json"
+    with open(out_path,"w",encoding="utf-8") as out:
+        json.dump(enriched,out,indent=2,ensure_ascii=False)
+    print(f"{subj['name']} -> {len(enriched)} lessons -> {out_path}")
+    return out_path
 
 if __name__ == "__main__":
     for s in subjects:

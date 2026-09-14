@@ -7,9 +7,14 @@ NaCCA text extracted from the source curriculum PDFs:
   - strand    : official strand name (e.g. "1. NUMBER"), fallback to code
 Fallback = keep existing placeholder text. Backup + full report.
 """
+# --- resolve bare data filenames against data/ (see tools/_compat.py) ---
+import sys as _sys, pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[2] / "tools"))
+from _compat import open_compat; open_compat()
+# -----------------------------------------------------------------------
 import json, os, re, shutil, gzip, hashlib
 
-ROOT = '/home/user'
+ROOT = str(Path(__file__).resolve().parents[2])
 CACHE = os.path.join(ROOT, 'pdf_text_cache')
 BK = os.path.join(ROOT, 'audit_backup')
 
@@ -70,7 +75,7 @@ report = []
 for sid, g, pdf, label in JOBS:
     t = text_of(pdf)
     snames = strand_names(t, g)
-    path = os.path.join(ROOT, 'curriculum_db', f'{sid}_{g}_curriculum_db_clean.json')
+    path = os.path.join(ROOT, 'data/curriculum', f'{sid}_{g}_curriculum_db_clean.json')
     bak = os.path.join(BK, os.path.basename(path) + '.pre_b2backfill')
     if not os.path.exists(bak):
         shutil.copy2(path, bak)
@@ -110,7 +115,7 @@ for sid, g, n, i, c, s, misses, snames in report:
     if misses:
         print(f"   ! no text found for {len(misses)}: {misses[:12]}")
     # samples
-    db = json.load(open(os.path.join(ROOT, 'curriculum_db', f'{sid}_{g}_curriculum_db_clean.json')))
+    db = json.load(open(os.path.join(ROOT, 'data/curriculum', f'{sid}_{g}_curriculum_db_clean.json')))
     k0 = sorted(db)[0]
     print(f"   sample {k0}: ind={db[k0]['ind_desc'][:80]!r} cs={db[k0]['cs_desc'][:70]!r} strand={db[k0]['strand']!r}")
 print('\nBackups: audit_backup/*.pre_b2backfill')

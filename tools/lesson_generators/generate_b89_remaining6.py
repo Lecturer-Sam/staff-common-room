@@ -2,13 +2,13 @@
 """Generate 180 full-year daily lesson plans for Basic 8 AND Basic 9 remaining subjects:
 RME, Computing, Social Studies, Career Technology, Creative Arts and Design, French.
 Uses verified B8/B9 CCP DBs. Subject-specific 3-phase templates (from the B7 build).
-Output: /home/user/{key}_b{8,9}_lessons_enriched.json
+Output: {key}_b{8,9}_lessons_enriched.json
 """
 import json
 from collections import defaultdict, Counter
 from itertools import cycle
 
-DBDIR = '/home/user/curriculum_db'
+DBDIR = 'data/curriculum'
 DAYS5 = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
 def P(*slots):
@@ -302,7 +302,7 @@ def build_one(g, subj):
             "starter": act["starter"], "main": act["main"], "plenary": act["plenary"],
             "assessment": meta.get("assessment", "Oral questions; class exercise; teacher observation"),
         })
-    out = f"/home/user/{subj['key']}_{g.lower()}_lessons_enriched.json"
+    out = f"{subj['key']}_{g.lower()}_lessons_enriched.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(enriched, f, indent=1, ensure_ascii=False)
     dist = Counter(l["ind_code"] for l in lessons_raw)

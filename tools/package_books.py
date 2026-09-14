@@ -28,9 +28,13 @@ import re
 import shutil
 import zipfile
 from collections import defaultdict
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
+
+from _paths import BOOKS  # noqa: E402
 DIST = ROOT / "dist"
 BUNDLES = DIST / "bundles"
 
@@ -59,7 +63,7 @@ FILENAME_RE = re.compile(
 def scan(include_v2: bool = False):
     """Return (canonical, alternates) lists of volume dicts."""
     canonical, alternates = [], []
-    for path in sorted(ROOT.glob("*.docx")):
+    for path in sorted(BOOKS.glob("*.docx")):
         m = FILENAME_RE.match(path.name)
         if not m:
             continue

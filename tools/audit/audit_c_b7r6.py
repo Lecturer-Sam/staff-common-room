@@ -6,7 +6,7 @@ from collections import Counter
 import docx
 from docx.shared import RGBColor
 
-ROOT = '/home/user'
+ROOT = str(Path(__file__).resolve().parents[2])
 WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 CODE_RE = re.compile(r'^B7\.\d+\.\d+\.\d+\.\d+$')
 REQ = ['strand_name', 'sub_strand', 'cs_code', 'cs_desc', 'ind_code', 'ind_desc',

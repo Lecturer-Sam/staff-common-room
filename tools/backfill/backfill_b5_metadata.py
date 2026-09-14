@@ -3,9 +3,14 @@
 text from the Upper Primary PDFs. All grabs GRADE-SCOPED to BASIC 5 body slices.
 Includes auto-cleaning (CONT'D, page footers, competency leaks) and artifact
 detection (reports codes with zero hits in the body before any removal)."""
+# --- resolve bare data filenames against data/ (see tools/_compat.py) ---
+import sys as _sys, pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[2] / "tools"))
+from _compat import open_compat; open_compat()
+# -----------------------------------------------------------------------
 import json, os, re, shutil, gzip, hashlib
 
-ROOT = '/home/user'
+ROOT = str(Path(__file__).resolve().parents[2])
 CACHE = os.path.join(ROOT, 'pdf_text_cache')
 BK = os.path.join(ROOT, 'audit_backup')
 
@@ -84,7 +89,7 @@ for sid, g, pdf, strand_map in JOBS:
     full = text_of(pdf)
     s, e = BODIES[pdf]
     scope = full[s:e]
-    path = os.path.join(ROOT, 'curriculum_db', f'{sid}_{g}_curriculum_db_clean.json')
+    path = os.path.join(ROOT, 'data/curriculum', f'{sid}_{g}_curriculum_db_clean.json')
     bak = os.path.join(BK, os.path.basename(path) + '.pre_b5backfill')
     if not os.path.exists(bak):
         shutil.copy2(path, bak)
@@ -139,7 +144,7 @@ for sid, g, n, i, c, s, misses, zero_hits in report:
         cs_m = sorted({c2 for t2, c2 in misses if t2 == 'cs'})
         print(f"   ! ind misses ({len(ind_m)}): {ind_m[:10]}")
         if cs_m: print(f"   ! cs misses ({len(cs_m)}): {cs_m[:10]}")
-    db = json.load(open(os.path.join(ROOT, 'curriculum_db', f'{sid}_{g}_curriculum_db_clean.json')))
+    db = json.load(open(os.path.join(ROOT, 'data/curriculum', f'{sid}_{g}_curriculum_db_clean.json')))
     k0 = sorted(db)[0]
     print(f"   sample {k0}: ind={db[k0]['ind_desc'][:70]!r}")
     print(f"              cs={db[k0]['cs_desc'][:60]!r} strand={db[k0]['strand']!r}")

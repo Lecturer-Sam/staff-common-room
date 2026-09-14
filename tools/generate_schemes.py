@@ -60,6 +60,7 @@ except ImportError:  # data-only use (build_app_curriculum.py) still works
     HAS_DOCX = False
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
 OUT = ROOT / "dist" / "schemes"
 JSON_OUT = OUT / "json"
 DOCX_OUT = OUT / "docx"
@@ -113,13 +114,11 @@ B1_DB_PREFIX = {
 }
 
 
-# The repo root is missing a few curriculum DB files that are present inside
-# saas-files.zip (e.g. english-language_B5). Fall back to the unpacked
-# reference copy so the cross-check can still score every subject-grade.
-DB_SEARCH = [
-    ROOT,
-    ROOT / "app" / "data",
-]
+# Some curriculum DB files live only in the reference copy (e.g.
+# english-language_B5), so it is searched as a fallback. The primary copy
+# is searched first, which preserves the historical ordering (repo root
+# before app/data/). See tools/_paths.py — do not re-define this here.
+from _paths import DB_SEARCH, LESSONS, REFERENCE  # noqa: E402,F401
 
 
 def resolve_db(subj, grade):
@@ -148,7 +147,7 @@ COL_HEADS = ["WEEKS", "STRAND", "SUB-STRANDS", "CONTENT STANDARD", "INDICATORS",
 def discover():
     """Map enriched lesson files -> (subject_key, grade, path)."""
     found, unmapped = [], []
-    for path in sorted(ROOT.glob("*_lessons_enriched.json")):
+    for path in sorted(LESSONS.glob("*_lessons_enriched.json")):
         m = FILE_RE.match(path.name)
         if not m:
             unmapped.append(path.name)

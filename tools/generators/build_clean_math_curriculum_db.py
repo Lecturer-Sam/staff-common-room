@@ -1,3 +1,8 @@
+# --- resolve bare data filenames against data/ (see tools/_compat.py) ---
+import sys as _sys, pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[2] / "tools"))
+from _compat import open_compat; open_compat()
+# -----------------------------------------------------------------------
 import json
 
 # Let's define the clean, highly-detailed curriculum metadata for the 24 unique indicators of Basic 1 Mathematics.

@@ -11,10 +11,15 @@ Checks per file:
   7. Placeholder vs rich metadata flag
   8. Counts vs embedded summary JSON (where present) and vs expected table
 """
+# --- resolve bare data filenames against data/ (see tools/_compat.py) ---
+import sys as _sys, pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[2] / "tools"))
+from _compat import open_compat; open_compat()
+# -----------------------------------------------------------------------
 import json, os, re, sys
 
-ROOT = '/home/user'
-CDB = os.path.join(ROOT, 'curriculum_db')
+ROOT = str(Path(__file__).resolve().parents[2])
+CDB = os.path.join(ROOT, 'data/curriculum')
 CODE_RE = re.compile(r'^B(\d)\.(\d+)\.(\d+)\.(\d+)\.(\d+)$')
 REQUIRED = ['strand', 'sub_strand', 'cs_code', 'cs_desc', 'ind_desc',
             'competencies', 'resources', 'keywords', 'assessment']

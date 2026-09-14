@@ -9,10 +9,15 @@
 6. english enriched : propagate DB assessments into lessons with empty assessment
 Originals of every modified file are backed up to audit_backup/.
 """
+# --- resolve bare data filenames against data/ (see tools/_compat.py) ---
+import sys as _sys, pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[2] / "tools"))
+from _compat import open_compat; open_compat()
+# -----------------------------------------------------------------------
 import json, os, shutil, re
 from collections import OrderedDict
 
-ROOT = '/home/user'
+ROOT = str(Path(__file__).resolve().parents[2])
 BK = os.path.join(ROOT, 'audit_backup')
 os.makedirs(BK, exist_ok=True)
 log = []
@@ -33,7 +38,7 @@ def db_file(sid, g):
                  'ghanaian-language': 'ghanaian_language', 'history': 'history', 'owop': 'owop',
                  'rme': 'rme', 'creative-arts': 'creative_arts'}
         return os.path.join(ROOT, f'{alias[sid]}_curriculum_db_clean.json')
-    return os.path.join(ROOT, 'curriculum_db', f'{sid}_{g}_curriculum_db_clean.json')
+    return os.path.join(ROOT, 'data/curriculum', f'{sid}_{g}_curriculum_db_clean.json')
 
 def new_entry(db, code, subject_label, ind_desc, ccp=False, strand_name=None):
     """Build a new DB entry in the same house style as the file it joins."""

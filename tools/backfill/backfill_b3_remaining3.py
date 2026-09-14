@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Backfill B3 Creative Arts, History, RME DBs with authentic NaCCA text.
 History + RME grabs are GRADE-SCOPED to the BASIC 3 body sections of their PDFs."""
+# --- resolve bare data filenames against data/ (see tools/_compat.py) ---
+import sys as _sys, pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[2] / "tools"))
+from _compat import open_compat; open_compat()
+# -----------------------------------------------------------------------
 import json, os, re, shutil, gzip, hashlib
 
-ROOT = '/home/user'
+ROOT = str(Path(__file__).resolve().parents[2])
 CACHE = os.path.join(ROOT, 'pdf_text_cache')
 BK = os.path.join(ROOT, 'audit_backup')
 
@@ -65,7 +70,7 @@ for sid, g, pdf, strand_map in JOBS:
         scope = t[s:e]
     else:
         scope = t
-    path = os.path.join(ROOT, 'curriculum_db', f'{sid}_{g}_curriculum_db_clean.json')
+    path = os.path.join(ROOT, 'data/curriculum', f'{sid}_{g}_curriculum_db_clean.json')
     bak = os.path.join(BK, os.path.basename(path) + '.pre_b3r3backfill')
     if not os.path.exists(bak):
         shutil.copy2(path, bak)
@@ -102,7 +107,7 @@ for sid, g, n, i, c, s, misses in report:
     print(f"== {sid} {g}: indicators={n} | ind backfilled={i} | cs backfilled={c} | strands set={s}")
     if misses:
         print(f"   ! no ind text for {len(misses)}: {misses[:12]}")
-    db = json.load(open(os.path.join(ROOT, 'curriculum_db', f'{sid}_{g}_curriculum_db_clean.json')))
+    db = json.load(open(os.path.join(ROOT, 'data/curriculum', f'{sid}_{g}_curriculum_db_clean.json')))
     k0 = sorted(db)[0]
     print(f"   sample {k0}: ind={db[k0]['ind_desc'][:75]!r}")
     print(f"              cs={db[k0]['cs_desc'][:65]!r} strand={db[k0]['strand']!r}")

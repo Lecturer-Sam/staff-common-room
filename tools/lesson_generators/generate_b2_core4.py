@@ -2,13 +2,13 @@
 """Generate 180 full-year daily lesson plans (3 terms x 12 weeks x 5 days)
 for Basic 2 Core-4 subjects: Mathematics, Science, English, Ghanaian Language.
 Uses the verified B2 curriculum DBs (authentic NaCCA indicator/CS text).
-Output: /home/user/{subject}_b2_lessons_enriched.json
+Output: {subject}_b2_lessons_enriched.json
 """
 import json
 from collections import defaultdict, Counter
 from itertools import cycle
 
-DBDIR = '/home/user/curriculum_db'
+DBDIR = 'data/curriculum'
 
 subjects = [
     {"key": "math", "sid": "mathematics", "name": "Mathematics",
@@ -178,7 +178,7 @@ def build_one(subj):
             "starter": act["starter"], "main": act["main"], "plenary": act["plenary"],
             "assessment": meta.get("assessment", "Oral questions; class exercise; teacher observation"),
         })
-    out = f"/home/user/{subj['key']}_b2_lessons_enriched.json"
+    out = f"{subj['key']}_b2_lessons_enriched.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(enriched, f, indent=1, ensure_ascii=False)
     print(f"OK {subj['name']}: {len(enriched)} lessons -> {out}")

@@ -46,6 +46,9 @@ except ImportError:
     sys.exit("python-docx is required:  pip install python-docx")
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
+
+from _paths import BOOKS  # noqa: E402
 
 BANDS = {
     **{f"B{i}": "Lower Primary" for i in (1, 2, 3)},
@@ -58,7 +61,7 @@ FILE_RE = re.compile(r"^Basic(\d)_(.+)_Lesson_Plans_Full_Year\.docx$")
 
 def find_books():
     out = []
-    for p in sorted(ROOT.glob("Basic*_Lesson_Plans_Full_Year.docx")):
+    for p in sorted(BOOKS.glob("Basic*_Lesson_Plans_Full_Year.docx")):
         m = FILE_RE.match(p.name)
         if m:
             out.append((p, f"B{m.group(1)}"))

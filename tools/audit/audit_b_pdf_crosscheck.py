@@ -7,10 +7,15 @@ Independent re-extraction of indicator codes straight from the PDFs
   - coverage: % of PDF indicators captured by the DB
 Also: authenticity spot-check of B1 rich ind_desc strings against PDF text.
 """
+# --- resolve bare data filenames against data/ (see tools/_compat.py) ---
+import sys as _sys, pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[2] / "tools"))
+from _compat import open_compat; open_compat()
+# -----------------------------------------------------------------------
 import json, os, re, gzip, hashlib
 from pypdf import PdfReader
 
-ROOT = '/home/user'
+ROOT = str(Path(__file__).resolve().parents[2])
 CACHE = os.path.join(ROOT, 'pdf_text_cache')
 os.makedirs(CACHE, exist_ok=True)
 
@@ -23,7 +28,7 @@ B1_ALIAS = {
 def db_path(sid, g):
     if g == 'B1':
         return os.path.join(ROOT, f'{B1_ALIAS[sid]}_curriculum_db_clean.json')
-    return os.path.join(ROOT, 'curriculum_db', f'{sid}_{g}_curriculum_db_clean.json')
+    return os.path.join(ROOT, 'data/curriculum', f'{sid}_{g}_curriculum_db_clean.json')
 
 PDFS = [
     ('math_B1-B3.pdf',                 'mathematics',         [1, 2, 3]),

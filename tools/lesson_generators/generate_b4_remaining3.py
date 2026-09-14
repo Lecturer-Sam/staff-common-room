@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Generate 180 full-year daily lesson plans for Basic 4 remaining subjects:
 Creative Arts, History, RME. Uses verified B4 DBs (authentic NaCCA text).
-Output: /home/user/{creative_arts,history,rme}_b4_lessons_enriched.json
+Output: {creative_arts,history,rme}_b4_lessons_enriched.json
 """
 import json
 from collections import defaultdict, Counter
 from itertools import cycle
 
-DBDIR = '/home/user/curriculum_db'
+DBDIR = 'data/curriculum'
 DAYS5 = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
 subjects = [
@@ -179,7 +179,7 @@ def build_one(subj):
             "starter": act["starter"], "main": act["main"], "plenary": act["plenary"],
             "assessment": meta.get("assessment", "Oral questions; class exercise; teacher observation"),
         })
-    out = f"/home/user/{subj['key']}_b4_lessons_enriched.json"
+    out = f"{subj['key']}_b4_lessons_enriched.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(enriched, f, indent=1, ensure_ascii=False)
     dist = Counter(l["ind_code"] for l in lessons_raw)

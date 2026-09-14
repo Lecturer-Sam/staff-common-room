@@ -226,125 +226,99 @@ It is the seam between the two.
 
 ## 4. Repository structure today
 
-986 tracked files:
+**Restructured — the repo root is down to 6 files.**
 
-| Location | Files | Share |
-|---|---:|---:|
-| **repo root** | **464** | **47%** |
-| `app/` | 499 | 51% |
-| `docs/` | 9 | 1% |
-| `tools/` | 7 | 1% |
-| `service/` | 4 | — |
-| `sales/`, `marketing/` | 3 | — |
-
-The root pile, broken down:
-
-| Category | Count | Verdict |
+| Location | Files | Contents |
 |---|---:|---|
-| `*.json` data | 233 | **should be under `data/`** |
-| `build_*.py` book generators | 79 | **should be under `tools/`** |
-| `audit_*.py` + results | 24 | **should be under `tools/`** |
-| `*.pdf` source curricula | 24 | **should be under `data/source/`** |
-| `generate_*.py` | 23 | **should be under `tools/`** |
-| `backfill_*.py` | 16 | **should be under `tools/`** |
-| `parse_*`/`extract_*.py` | 17 | **should be under `tools/`** |
-| One-off scratch scripts | 28 | **should be deleted** |
-| `*.txt` raw PDF dumps | 12 | **should be under `data/`** |
-| `*.docx` built books | 2 | **moved out already** |
-| `*.md` | 4 | keep |
-
-Those 28 scratch scripts are extraction debris (none is imported by any
-other script — verified):
-`print_page6.py`, `print_page10.py`, `print_page11.py`,
-`print_page1_text.py`, `inspect_math.py`, `inspect_math_parsed.py`,
-`read_notes.py`, `read_math_notes.py`, `scan_cells.py`,
-`test_parse.py`, `test_parse_math.py`, `test_structure.py`, …
-
----
-
-## 5. Is restructuring possible?
-
-**Yes — and it is safe, because git tracks content, not folders.**
-
-`git mv` records a rename. History follows the file. Nothing is lost, no
-commit is rewritten, and every existing pointer (branch, tag, PR) keeps
-working. The risk is not to history — it is to **paths hardcoded in code**.
-
-### What actually breaks
-
-The 79 `build_*.py` scripts, 17 parser scripts and 23 generators read and write
-sibling paths at the repo root. Move the JSON and they all break.
-
-Mitigation: give the data layer **one** module that resolves paths, and
-have every script import it. Then the move is a one-line change.
-
-```python
-# data/paths.py
-from pathlib import Path
-ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "data"
-SOURCES = DATA / "sources"      # the 24 PDFs
-RAW     = DATA / "raw"          # the 12 .txt dumps
-DB      = DATA / "curriculum"   # the 75 *_curriculum_db_clean.json
-LESSONS = DATA / "lessons"      # the 73 *_lessons_enriched.json
-```
-
-### Target structure
+| `data/` | 500 | the curriculum asset |
+| `app/` | 275 | React portal |
+| `tools/` | 191 | every Python script |
+| `docs/`, `service/`, `sales/`, `marketing/` | 17 | — |
+| **repo root** | **6** | `.gitignore`, 4 `.md`, `saas-files.zip` |
 
 ```
 staff-common-room/
-├── app/                        # React portal (unchanged)
-├── service/                    # Material Service (unchanged)
-├── tools/                      # every .py in the repo
-│   ├── generators/             #   build_*.py (79)
-│   ├── parsers/                #   parse_*.py, extract_*.py (17)
-│   ├── backfill/               #   backfill_*.py (16)
-│   ├── audit/                  #   audit_*.py (24)
+├── app/                        React portal (unchanged)
+├── service/                    Material Service (unchanged)
+├── data/
+│   ├── curriculum/    148      *_curriculum_db_clean + *_summary
+│   ├── lessons/        73      *_lessons_enriched (13,140 lessons)
+│   ├── sources/        24      source NaCCA PDFs
+│   ├── raw/            12      text extracted from those PDFs
+│   ├── indicators/     10      indicator extracts
+│   ├── audit/           5      audit results
+│   ├── misc/            2      parsed-lesson intermediates
+│   ├── books/           2      sample generated documents
+│   └── reference/     201      second copy (formerly app/data/)
+├── tools/
+│   ├── _paths.py               single source of truth for data paths
+│   ├── _compat.py              shim: bare filenames -> data/
 │   ├── generate_schemes.py
 │   ├── generate_records_of_work.py
-│   └── build_app_curriculum.py
-├── data/                       # every .json / .pdf / .txt
-│   ├── paths.py                #   single source of truth for paths
-│   ├── sources/                #   24 NaCCA PDFs
-│   ├── raw/                    #   12 extracted .txt
-│   ├── curriculum/             #   75 *_curriculum_db_clean.json
-│   └── lessons/                #   73 *_lessons_enriched.json
-├── docs/                       # unchanged
-├── sales/  marketing/
+│   ├── build_app_curriculum.py
+│   ├── generators/      79     build_*.py book generators
+│   ├── lesson_generators/ 23   generate_*.py
+│   ├── audit/           19     audit_*.py
+│   ├── backfill/        16     backfill_*.py
+│   ├── parsers/         17     parse_*.py / extract_*.py
+│   └── inspect/         28     one-off diagnostics (unused)
+├── docs/  sales/  marketing/
 ├── TODO.md
-└── README.md
+└── OPPORTUNITY_MAP.md
 ```
 
-Effect: **464 root files → about 8.**
+### How the 154 legacy scripts were handled
 
-### Suggested sequence
+They opened data by bare filename (`open("math_b4_lessons_enriched.json")`)
+and only worked from the repo root. Rather than rewriting 154 scripts,
+`tools/_compat.py` resolves bare filenames against the data directories at
+runtime. Each legacy script got a four-line preamble:
 
-| Step | Action | Risk |
-|---|---|---|
-| 0 | Delete the 28 scratch scripts (verify none are imported first) | None — they are dead |
-| 1 | Create `data/paths.py` | None |
-| 2 | `git mv` the data into `data/` | Low — breaks paths until step 3 |
-| 3 | Update the ~154 scripts to import `paths.py` | **Medium — the real work** |
-| 4 | `git mv` the `.py` files into `tools/` | Low |
-| 5 | Fix imports/relative paths in moved scripts | Low |
-| 6 | Regenerate a book + run `tools/validate_app_curriculum.py` | Verification |
-| 7 | `yarn build` | Verification |
+```python
+import sys as _sys, pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[2] / "tools"))
+from _compat import open_compat; open_compat()
+```
 
-Steps 0–2 are mechanical and reversible. **Step 3 is the only genuinely
-labour-intensive one**, and it can be done script by script, verifying as
-you go.
+Reads are redirected; writes are not, so a generator still writes its
+`.docx` to the current directory. A side effect worth having: the scripts
+**now work from any directory**, which they never did before.
 
-### Recommendation
+### Bugs fixed along the way
 
-Do **step 0 now** — deleting 29 dead scratch scripts is free and instantly
-makes the repo legible.
+| Bug | Count | Fix |
+|---|---:|---|
+| `ROOT = '/home/user'` hardcoded | 36 | derived from `__file__` |
+| Other hardcoded `/home/user/...` paths | 24 | stripped to bare filenames |
+| `generate_b1_remaining.py` truncated mid-file | 1 | completed from the `v2` sibling |
 
-Do **not** do steps 1–5 while the sales push is the priority. The
-restructure touches ~154 scripts and produces zero revenue. It is worth
-doing *because* you will live in this repo for years, but it should happen
-in a quiet week, on its own branch, with step 6 as the gate.
+Those 36 scripts were **broken** — they pointed at `/home/user` and at a
+`curriculum_db/` directory that does not exist. They now resolve correctly,
+though several still reference directories (`pdf_text_cache`,
+`audit_backup`) that are not in the repo.
 
-The one thing I would fix immediately, regardless: the **4,040 indicator
-figure** in `TODO.md`, `docs/APP_CURRICULUM.md` and
-`docs/VISUALIZATION_ENGINE.md`. It is wrong, it is in material a school
-could read, and it is a two-minute correction.
+---
+
+## 5. Verification
+
+The restructure is behaviour-preserving. Proven, not assumed:
+
+| Check | Result |
+|---|---|
+| `build_app_curriculum.py` output | **byte-identical** to pre-restructure (md5 `4b55b2ca…`, 44 files, 39,690,000 bytes) |
+| `generate_schemes.py` | runs |
+| `generate_records_of_work.py` | runs |
+| Legacy generator from a foreign cwd | runs (previously impossible) |
+| All 191 `tools/*.py` compile | 0 failures |
+| `vite build` | passes |
+
+---
+
+## 6. What remains
+
+| Item | Note |
+|---|---|
+| **162 curriculum files duplicated** across `data/curriculum/` and `data/reference/`, **all 162 differing** | `DB_SEARCH` checks `curriculum` first, so the app builds from the primary copies. The `reference` copies are newer in origin (commit `1058e2c`) and cleaner — e.g. strand `"MATERIALS FOR PRODUCTION"` vs `"2. MATERIALS FOR PRODUCTION"`. Reconciling them changes app output, so it needs a deliberate decision. |
+| 4,040 vs 2,519 indicators | Both are real: 4,040 counts indicator records per grade across 11 grades (KG1, KG2, B1–B9) — this is what the app serves. 2,519 is unique codes. **4,040 is the correct number for public claims.** |
+| `tools/inspect/` (28 scripts) | Unused; kept rather than deleted |
+| 36 audit/backfill scripts | Now path-correct, but reference `pdf_text_cache/` and `audit_backup/` which are absent |

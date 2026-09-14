@@ -2,7 +2,7 @@ import json
 from collections import defaultdict
 
 # Load Ghanaian Language B1 curriculum DB
-with open('/home/user/ghanaian_language_curriculum_db_clean.json') as f:
+with open('ghanaian_language_curriculum_db_clean.json') as f:
     cur_db = json.load(f)
 
 print(f"Loaded {len(cur_db)} Ghanaian Language B1 indicators")
@@ -259,6 +259,6 @@ for l in lessons_raw:
     })
 
 print(f"Enriched {len(enriched)} Ghanaian Language B1 lessons")
-with open("/home/user/ghanaian_language_lessons_enriched.json","w",encoding="utf-8") as out:
+with open("ghanaian_language_lessons_enriched.json","w",encoding="utf-8") as out:
     json.dump(enriched,out,indent=2,ensure_ascii=False)
-print("Saved to /home/user/ghanaian_language_lessons_enriched.json")
+print("Saved to ghanaian_language_lessons_enriched.json")

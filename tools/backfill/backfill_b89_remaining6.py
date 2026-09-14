@@ -2,9 +2,14 @@
 """Backfill B8/B9 remaining-6 DBs (rme, computing, social-studies, career-technology,
 creative-arts-design, french) with authentic NaCCA CCP text. /JHS-aware matcher,
 notation-table guard, competency-tail cleaner. Social Studies = whole-PDF (codes self-identify)."""
+# --- resolve bare data filenames against data/ (see tools/_compat.py) ---
+import sys as _sys, pathlib as _pathlib
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parents[2] / "tools"))
+from _compat import open_compat; open_compat()
+# -----------------------------------------------------------------------
 import json, os, re, shutil, gzip, hashlib
 
-ROOT = '/home/user'
+ROOT = str(Path(__file__).resolve().parents[2])
 CACHE = os.path.join(ROOT, 'pdf_text_cache')
 BK = os.path.join(ROOT, 'audit_backup')
 
@@ -114,7 +119,7 @@ for sid, g, pdf, strand_map in JOBS:
     s, e = BODIES[pdf][g]
     scope = full[s:e if e else len(full)]
     t2 = full if pdf != 'social_studies_CCP_B7-B9.pdf' else None
-    path = os.path.join(ROOT, 'curriculum_db', f'{sid}_{g}_curriculum_db_clean.json')
+    path = os.path.join(ROOT, 'data/curriculum', f'{sid}_{g}_curriculum_db_clean.json')
     bak = os.path.join(BK, os.path.basename(path) + '.pre_b89r6backfill')
     if not os.path.exists(bak):
         shutil.copy2(path, bak)
