@@ -1,9 +1,12 @@
 import {
+  AlignmentType,
   Document,
   Packer,
+  Paragraph,
   Table,
   TableCell,
   TableRow,
+  TextRun,
   WidthType,
 } from 'docx'
 import {
@@ -43,6 +46,11 @@ export function schemeFilename({ subjectName, term, gradeLabel, watermark }) {
  * teacher asks for every subject in a grade the files are bundled into one
  * .zip, which is impossible if the exporter saves each one as it goes.
  */
+/** 'School: Achimota' when supplied, 'School: ______' when not. */
+export function field(label, value, width = 22) {
+  return value ? `${label}: ${value}` : `${label}: ${'_'.repeat(width)}`
+}
+
 export async function buildSchemeDocx({
   subjectName,
   gradeLabel = 'Basic 1',
@@ -51,6 +59,12 @@ export async function buildSchemeDocx({
   authorName,
   notes,
   watermark = false,
+  // Cover branding. Each falls back to a handwritten blank, matching the
+  // Python generator — see field() in tools/generate_schemes.py.
+  school,
+  className,
+  year,
+  hod,
 }) {
   const logo = await loadLogoBuffer()
 
@@ -99,11 +113,51 @@ export async function buildSchemeDocx({
       subtitle: `${subjectName.toUpperCase()} · TERM ${term} · ${gradeLabel.toUpperCase()}`,
       extra: authorName ? `Prepared by ${authorName}` : undefined,
     }),
+  ]
+
+  // Cover fields, only when at least one was supplied — a plain export stays
+  // exactly as it was.
+  const hasBranding = school || className || year || hod || authorName
+  if (hasBranding) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 20 },
+        children: [
+          new TextRun({
+            text: [
+              field('School', school, 38),
+              field('Class', className, 12),
+              field('Academic Year', year, 10),
+            ].join('      '),
+            bold: true,
+            size: 18,
+          }),
+        ],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 120 },
+        children: [
+          new TextRun({
+            text: [
+              field('Teacher', authorName, 36),
+              field('HoD', hod, 20),
+            ].join('      '),
+            bold: true,
+            size: 18,
+          }),
+        ],
+      }),
+    )
+  }
+
+  children.push(
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [header, ...body],
     }),
-  ]
+  )
 
   if (notes) {
     children.push(...cellParas(`\nNotes:\n${notes}`, { size: 18 }))

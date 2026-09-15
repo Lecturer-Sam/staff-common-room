@@ -4,10 +4,10 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { db } from '../firebase'
 import { Button, Card, Field, Input, PageHeader, Select } from '../components/ui'
-import { fetchCatalog, generateAndDownload } from '../lib/materialService'
 import { listMyGenerations, recordGeneration } from '../lib/generatedMaterials'
 import { useGrades, useGradeSubjects } from '../hooks/useCurriculum'
 import { downloadSchemes, loadSchemes, withSchemes } from '../lib/clientScheme'
+import { downloadRecords, loadSchedules, withSchedules } from '../lib/clientRecord'
 
 /**
  * Generate Materials — the portal's front door to document generation.
@@ -16,16 +16,16 @@ import { downloadSchemes, loadSchemes, withSchemes } from '../lib/clientScheme'
  * Work pre-printed with its own details. Whatever is produced is recorded so
  * the school workspace can show it.
  *
- * The two kinds are produced differently on purpose:
+ * Both kinds are built in the browser, from data already shipped in the static
+ * bundle:
  *
- *   Scheme  — built in the browser by lib/clientScheme.js from the
- *             pre-generated rows in /curriculum/<grade>_schemes.json. Needs no
- *             server, so it works on a static deployment with no Python host.
- *   Record  — still built by the Material Service (service/main.py), because
- *             there is no client-side exporter for it yet.
+ *   Scheme  — lib/clientScheme.js from /curriculum/<grade>_schemes.json
+ *   Record  — lib/clientRecord.js from /curriculum/<grade>_schedules.json
  *
- * That split means a broken or absent service degrades to "records are
- * unavailable" rather than taking the whole page down.
+ * Neither needs a server, so this page works on a static deployment with no
+ * Python host. The Material Service (service/main.py) produces equivalent
+ * output server-side and is still available for bulk jobs, but nothing here
+ * depends on it.
  */
 
 const KIND_OPTIONS = [
@@ -43,7 +43,7 @@ const TERM_OPTIONS = [
 // Rough generation times, shown so the wait feels expected rather than broken.
 const WAIT_HINT = {
   scheme: 'Built in your browser — a second or two.',
-  record: 'A record of work takes a few seconds.',
+  record: 'A full year lists 180 lessons, so allow a few seconds.',
 }
 
 function fmtWhen(ts) {
@@ -68,15 +68,15 @@ export default function Materials() {
 
   const schoolId = profile?.schoolId ?? null
 
-  // Grades and subjects come from the static curriculum bundle, so the scheme
-  // half of this page never depends on the service being up.
+  // Everything here comes from the static curriculum bundle, so the page never
+  // depends on a service being up.
   const grades = useGrades()
   const gradeSubjects = useGradeSubjects(grade)
-  const [schemeData, setSchemeData] = useState(null)
 
-  // Only used by Record of Work, which the service still builds.
-  const [catalog, setCatalog] = useState(null)
-  const [catalogError, setCatalogError] = useState('')
+  // Which subjects actually have data for the chosen kind. Each is only
+  // fetched for the kind that needs it, since the schedules file is ~3 MB.
+  const [schemeData, setSchemeData] = useState(null)
+  const [scheduleData, setScheduleData] = useState(null)
 
   const [kind, setKind] = useState('scheme')
   const [grade, setGrade] = useState('B4')
@@ -94,24 +94,21 @@ export default function Materials() {
 
   // Effects are for external sync only — see docs/conventions.md.
   //
-  // The service catalog is only needed for records, so a failure here is not
-  // fatal: it disables that one option and leaves schemes working.
-  useEffect(() => {
-    let active = true
-    fetchCatalog()
-      .then((data) => active && setCatalog(data))
-      .catch((err) => active && setCatalogError(err.message || 'unavailable'))
-    return () => {
-      active = false
-    }
-  }, [])
-
-  // Which subjects in this grade actually have a scheme. Skipping entirely for
-  // records keeps the bigger file off that path.
+  // Only the file for the selected kind is fetched, and each is cached at
+  // module level, so switching between the two costs one download each.
   useEffect(() => {
     if (kind !== 'scheme') return
     let active = true
     loadSchemes(grade).then((data) => active && setSchemeData(data))
+    return () => {
+      active = false
+    }
+  }, [grade, kind])
+
+  useEffect(() => {
+    if (kind !== 'record') return
+    let active = true
+    loadSchedules(grade).then((data) => active && setScheduleData(data))
     return () => {
       active = false
     }
@@ -152,20 +149,19 @@ export default function Materials() {
     setSubject('')
   }
 
-  // Schemes are limited to subjects that actually have rows — most grades list
-  // ten subjects but only seven have scheduled lessons, and offering the rest
-  // would hand a teacher an empty table. Records use the service's own list.
+  // Narrowed to subjects that actually have rows. Most grades list ten subjects
+  // but only seven have scheduled lessons, and offering the rest would hand a
+  // teacher an empty document.
   const subjects =
     kind === 'scheme'
       ? withSchemes(gradeSubjects, schemeData)
-      : (catalog?.grades?.[grade] ?? [])
+      : withSchedules(gradeSubjects, scheduleData)
 
   const allSubjects = subject === ''
   const schoolLocked = Boolean(schoolId)
 
-  // Records still need the service; schemes need nothing but the bundle.
-  const recordUnavailable = kind === 'record' && Boolean(catalogError)
-  const schemesReady = kind !== 'scheme' || Boolean(schemeData)
+  // Nothing to generate until the file for this kind has arrived.
+  const ready = kind === 'scheme' ? Boolean(schemeData) : Boolean(scheduleData)
 
   async function handleGenerate() {
     setBusy(true)
@@ -179,26 +175,27 @@ export default function Materials() {
       if (year) request.year = year
       if (hod && kind === 'scheme') request.hod = hod
 
-      let filename
-      let isZip
+      // Both kinds are built here in the browser — no service, no round trip.
+      const shared = { grade, subjectId: subject, subjects: gradeSubjects, term }
 
-      if (kind === 'scheme') {
-        // Built here in the browser — no service, no round trip.
-        const result = await downloadSchemes({
-          grade,
-          subjectId: subject,
-          subjects: gradeSubjects,
-          term,
-          authorName: teacher || undefined,
-        })
-        filename = result.filename
-        isZip = result.isZip
-      } else {
-        const idToken = await user?.getIdToken?.()
-        const result = await generateAndDownload(request, idToken)
-        filename = result.filename
-        isZip = result.isZip
+      const branding = {
+        school: schoolName || undefined,
+        teacher: teacher || undefined,
+        className: className || undefined,
+        year: year || undefined,
       }
+
+      const result =
+        kind === 'scheme'
+          ? await downloadSchemes({
+              ...shared,
+              ...branding,
+              authorName: teacher || undefined,
+              hod: hod || undefined,
+            })
+          : await downloadRecords({ ...shared, ...branding })
+
+      const { filename, isZip } = result
 
       toast.success(
         isZip
@@ -216,14 +213,12 @@ export default function Materials() {
         toast.error('Downloaded, but could not save it to your history.')
       }
     } catch (err) {
-      // 503/500 from the service carry a useful `detail`; surface it.
+      // The generators throw plain, human-readable messages; show them as-is.
       toast.error(err.message || 'Generation failed.')
     } finally {
       setBusy(false)
     }
   }
-
-  const serviceDown = Boolean(catalogError)
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
@@ -231,20 +226,6 @@ export default function Materials() {
         title="Generate materials"
         subtitle="Produce a Scheme of Learning or Record of Work for your class, pre-printed with your school's details."
       />
-
-      {serviceDown && (
-        <Card className="mb-6 border-amber-300 bg-amber-50">
-          <p className="text-sm font-semibold text-amber-900">
-            Records of work are unavailable — schemes still work.
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-amber-800">
-            {catalogError}. Schemes of Learning are built in your browser and
-            need no service. To enable records too, make sure it is running
-            locally (<code>python service/main.py</code>) or that{' '}
-            <code>VITE_MATERIALS_URL</code> points at the deployed service.
-          </p>
-        </Card>
-      )}
 
       <Card className="mb-6">
         <h2 className="section-heading mb-4">What to generate</h2>
@@ -300,7 +281,7 @@ export default function Materials() {
             >
               <option value="">All subjects in this grade</option>
               {subjects.map((s) => (
-                <option key={s.key} value={s.key}>
+                <option key={s.id} value={s.id}>
                   {s.name}
                 </option>
               ))}
@@ -387,15 +368,12 @@ export default function Materials() {
 
       <div className="mb-8 flex flex-wrap items-center gap-3">
         {/*
-          Wait for auth to resolve, not just the catalog. Generating before the
+          Wait for auth to resolve, not just the data. Generating before the
           profile loads would send schoolId: null, and the rules pin schoolId
           to the caller's real school — so the download would succeed but the
           history write would be denied.
         */}
-        <Button
-          onClick={handleGenerate}
-          disabled={busy || recordUnavailable || !schemesReady || authLoading}
-        >
+        <Button onClick={handleGenerate} disabled={busy || !ready || authLoading}>
           {busy ? 'Generating…' : 'Generate and download'}
         </Button>
         <span className="card-meta">

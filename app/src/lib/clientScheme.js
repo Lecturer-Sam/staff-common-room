@@ -77,6 +77,10 @@ export async function buildSchemeFiles({
   term,
   authorName,
   notes,
+  school,
+  className,
+  year,
+  hod,
 }) {
   const data = await loadSchemes(grade)
   const wanted = withSchemes(subjects, data)
@@ -101,6 +105,10 @@ export async function buildSchemeFiles({
       rows,
       authorName,
       notes,
+      school,
+      className,
+      year,
+      hod,
     })
     out.push({ blob, filename, subjectName: s.name })
   }
