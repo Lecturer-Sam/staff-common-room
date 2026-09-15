@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/* ── Design tokens ──────────────────────────────────────────────────────── */
+@theme {
+  /* Brand colours */
+  --color-navy:         #0F172A;
+  --color-navy-800:     #1E293B;
+  --color-navy-700:     #334155;
+  --color-accent:       #FACC15;
+  --color-accent-hover: #FDE047;
+  --color-surface:      #F8FAFC;
+  --color-surface-dark: #0B1220;
+  --color-card:         #FFFFFF;
+  --color-ink:          #0F172A;
+  --color-ink-inv:      #F8FAFC;
+
+  /* Semantic aliases */
+  --color-correct:   #10B981;  /* emerald-500 */
+  --color-wrong:     #EF4444;  /* red-500     */
+  --color-pending:   #F59E0B;  /* amber-500   */
+
+  /* Status pill backgrounds */
+  --color-status-progress-bg:   #FEF3C7;
+  --color-status-progress-fg:   #B45309;
+  --color-status-notstarted-bg: #F1F5F9;
+  --color-status-notstarted-fg: #64748B;
+  --color-status-completed-bg:  #D1FAE5;
+  --color-status-completed-fg:  #047857;
+
+  /* Typography */
+  --font-display: 'Playfair Display', 'Georgia', serif;
+  --font-sans:    'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* Radius scale used across cards */
+  --radius-card:  1.25rem;   /* 20px */
+  --radius-chip:  1rem;      /* status pills / breadcrumb pills */
+  --radius-2xl:   1.5rem;    /* outer card wrap */
+  --radius-btn:   9999px;    /* pill */
+
+  /* Shadows lifted from mockups */
+  --shadow-soft:  0 8px 30px -20px rgba(0,0,0,0.30);
+  --shadow-heavy: 0 12px 40px -20px rgba(0,0,0,0.25);
+  --shadow-float: 0 30px 80px -20px rgba(0,0,0,0.50);
+}
+
+/* ── Dark / mobile-browse theme ─────────────────────────────────────────── */
+.screen-dark {
+  background-color: var(--color-surface-dark);
+  color: var(--color-ink-inv);
+}
+.screen-dark .text-navy { color: var(--color-ink-inv) !important; }
+.screen-dark .mastery-bar {
+  background: linear-gradient(to right, var(--color-accent) var(--pct,0%), var(--color-navy-700) var(--pct,0%));
+}
+
+/* ── Option button – selected yellow highlight (quiz-player) ─────────────── */
+.opt-selected {
+  background-color: #FFFBEB !important;
+  border-color: var(--color-accent) !important;
+  border-width: 2px !important;
+}
+
+/* ── Utility helpers used in drill-down ──────────────────────────────────── */
+.tracking-widest-2 { letter-spacing: 0.14em; }
+.font-display { font-family: var(--font-display); }
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-surface);
+  color: var(--color-navy);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hide scrollbars globally (still scrollable, just invisible) */
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }
+
+/* Selection highlight uses accent colour */
+::selection { background-color: color-mix(in srgb, var(--color-accent) 35%, transparent); }
