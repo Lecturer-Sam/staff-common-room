@@ -132,6 +132,50 @@ export function useAllSubjects() {
 }
 
 /** True when an indicator's text is still an extraction placeholder. */
+const subjectCache = new Map() // grade -> subjects[]
+const subjectPending = new Map()
+
+/**
+ * Just one grade's subject list, without the indicators.
+ *
+ * useCurriculum() also loads <grade>_indicators.json (~450 KB) that callers
+ * like the Materials page never read. This fetches only the small subjects
+ * file, and is cached the same way.
+ */
+export function useGradeSubjects(grade) {
+  const [subjects, setSubjects] = useState(subjectCache.get(grade))
+
+  useEffect(() => {
+    let active = true
+    if (!grade || subjectCache.has(grade)) {
+      return () => {
+        active = false
+      }
+    }
+    subjectPending.get(grade) ??
+      subjectPending.set(
+        grade,
+        fetch(`/curriculum/${grade.toLowerCase()}_subjects.json`)
+          .then((r) =>
+            r.ok && (r.headers.get('content-type') ?? '').includes('json')
+              ? r.json()
+              : [],
+          )
+          .catch(() => [])
+          .then((list) => {
+            subjectCache.set(grade, list)
+            return list
+          }),
+      )
+    subjectPending.get(grade).then((list) => active && setSubjects(list))
+    return () => {
+      active = false
+    }
+  }, [grade])
+
+  return subjects ?? []
+}
+
 export function isPlaceholder(text) {
   return /(Learning Indicator|Content Standard) [BK]|^Sub-strand [BK]/.test(
     text ?? '',

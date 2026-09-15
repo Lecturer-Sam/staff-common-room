@@ -6,15 +6,26 @@ import { db } from '../firebase'
 import { Button, Card, Field, Input, PageHeader, Select } from '../components/ui'
 import { fetchCatalog, generateAndDownload } from '../lib/materialService'
 import { listMyGenerations, recordGeneration } from '../lib/generatedMaterials'
+import { useGrades, useGradeSubjects } from '../hooks/useCurriculum'
+import { downloadSchemes, loadSchemes, withSchemes } from '../lib/clientScheme'
 
 /**
- * Generate Materials — the portal's front door to the Python generators.
+ * Generate Materials — the portal's front door to document generation.
  *
  * A school picks a grade and subject and gets a Scheme of Learning or Record of
- * Work pre-printed with its own details. The heavy lifting happens in the
- * Material Service (service/main.py); this page collects the parameters, hands
- * the file to the browser, and records what was produced so the school
- * workspace can show it.
+ * Work pre-printed with its own details. Whatever is produced is recorded so
+ * the school workspace can show it.
+ *
+ * The two kinds are produced differently on purpose:
+ *
+ *   Scheme  — built in the browser by lib/clientScheme.js from the
+ *             pre-generated rows in /curriculum/<grade>_schemes.json. Needs no
+ *             server, so it works on a static deployment with no Python host.
+ *   Record  — still built by the Material Service (service/main.py), because
+ *             there is no client-side exporter for it yet.
+ *
+ * That split means a broken or absent service degrades to "records are
+ * unavailable" rather than taking the whole page down.
  */
 
 const KIND_OPTIONS = [
@@ -31,7 +42,7 @@ const TERM_OPTIONS = [
 
 // Rough generation times, shown so the wait feels expected rather than broken.
 const WAIT_HINT = {
-  scheme: 'A scheme takes about a second.',
+  scheme: 'Built in your browser — a second or two.',
   record: 'A record of work takes a few seconds.',
 }
 
@@ -57,6 +68,13 @@ export default function Materials() {
 
   const schoolId = profile?.schoolId ?? null
 
+  // Grades and subjects come from the static curriculum bundle, so the scheme
+  // half of this page never depends on the service being up.
+  const grades = useGrades()
+  const gradeSubjects = useGradeSubjects(grade)
+  const [schemeData, setSchemeData] = useState(null)
+
+  // Only used by Record of Work, which the service still builds.
   const [catalog, setCatalog] = useState(null)
   const [catalogError, setCatalogError] = useState('')
 
@@ -75,6 +93,9 @@ export default function Materials() {
   const [history, setHistory] = useState(null)
 
   // Effects are for external sync only — see docs/conventions.md.
+  //
+  // The service catalog is only needed for records, so a failure here is not
+  // fatal: it disables that one option and leaves schemes working.
   useEffect(() => {
     let active = true
     fetchCatalog()
@@ -84,6 +105,17 @@ export default function Materials() {
       active = false
     }
   }, [])
+
+  // Which subjects in this grade actually have a scheme. Skipping entirely for
+  // records keeps the bigger file off that path.
+  useEffect(() => {
+    if (kind !== 'scheme') return
+    let active = true
+    loadSchemes(grade).then((data) => active && setSchemeData(data))
+    return () => {
+      active = false
+    }
+  }, [grade, kind])
 
   // Members of a school get its name pre-filled and locked. Free text would
   // let anyone print another school's name on a document, which would also
@@ -120,9 +152,20 @@ export default function Materials() {
     setSubject('')
   }
 
-  const subjects = catalog?.grades?.[grade] ?? []
+  // Schemes are limited to subjects that actually have rows — most grades list
+  // ten subjects but only seven have scheduled lessons, and offering the rest
+  // would hand a teacher an empty table. Records use the service's own list.
+  const subjects =
+    kind === 'scheme'
+      ? withSchemes(gradeSubjects, schemeData)
+      : (catalog?.grades?.[grade] ?? [])
+
   const allSubjects = subject === ''
   const schoolLocked = Boolean(schoolId)
+
+  // Records still need the service; schemes need nothing but the bundle.
+  const recordUnavailable = kind === 'record' && Boolean(catalogError)
+  const schemesReady = kind !== 'scheme' || Boolean(schemeData)
 
   async function handleGenerate() {
     setBusy(true)
@@ -136,8 +179,26 @@ export default function Materials() {
       if (year) request.year = year
       if (hod && kind === 'scheme') request.hod = hod
 
-      const idToken = await user?.getIdToken?.()
-      const { filename, isZip } = await generateAndDownload(request, idToken)
+      let filename
+      let isZip
+
+      if (kind === 'scheme') {
+        // Built here in the browser — no service, no round trip.
+        const result = await downloadSchemes({
+          grade,
+          subjectId: subject,
+          subjects: gradeSubjects,
+          term,
+          authorName: teacher || undefined,
+        })
+        filename = result.filename
+        isZip = result.isZip
+      } else {
+        const idToken = await user?.getIdToken?.()
+        const result = await generateAndDownload(request, idToken)
+        filename = result.filename
+        isZip = result.isZip
+      }
 
       toast.success(
         isZip
@@ -174,11 +235,12 @@ export default function Materials() {
       {serviceDown && (
         <Card className="mb-6 border-amber-300 bg-amber-50">
           <p className="text-sm font-semibold text-amber-900">
-            The material service is unavailable.
+            Records of work are unavailable — schemes still work.
           </p>
           <p className="mt-1 text-xs leading-relaxed text-amber-800">
-            {catalogError}. Make sure it is running locally
-            (<code>python service/main.py</code>) or that{' '}
+            {catalogError}. Schemes of Learning are built in your browser and
+            need no service. To enable records too, make sure it is running
+            locally (<code>python service/main.py</code>) or that{' '}
             <code>VITE_MATERIALS_URL</code> points at the deployed service.
           </p>
         </Card>
@@ -205,17 +267,21 @@ export default function Materials() {
           <Field
             label="Grade"
             htmlFor="grade"
-            hint={catalog ? `${subjects.length} subjects available` : 'Loading…'}
+            hint={
+              subjects.length
+                ? `${subjects.length} subjects available`
+                : 'Loading…'
+            }
           >
             <Select
               id="grade"
               value={grade}
               onChange={(e) => setGrade(e.target.value)}
-              disabled={!catalog}
+              disabled={!grades.length}
             >
-              {Object.keys(catalog?.grades ?? {}).map((g) => (
-                <option key={g} value={g}>
-                  {g.replace('B', 'Basic ')}
+              {grades.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
                 </option>
               ))}
             </Select>
@@ -230,7 +296,7 @@ export default function Materials() {
               id="subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              disabled={!catalog}
+              disabled={!subjects.length}
             >
               <option value="">All subjects in this grade</option>
               {subjects.map((s) => (
@@ -328,7 +394,7 @@ export default function Materials() {
         */}
         <Button
           onClick={handleGenerate}
-          disabled={busy || serviceDown || !catalog || authLoading}
+          disabled={busy || recordUnavailable || !schemesReady || authLoading}
         >
           {busy ? 'Generating…' : 'Generate and download'}
         </Button>

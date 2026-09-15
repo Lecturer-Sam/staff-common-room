@@ -32,7 +32,18 @@ function cell(text, { bold, fill, span, width, align } = {}) {
  * sample: WEEKS / STRAND / SUB-STRANDS / CONTENT STANDARD / INDICATORS /
  * RESOURCES, with full-width REVISION / EXAMINATION / VACATION rows.
  */
-export async function downloadSchemeDocx({
+export function schemeFilename({ subjectName, term, gradeLabel, watermark }) {
+  return `Scheme-of-Learning_${safeName(subjectName)}_Term-${term}_${safeName(gradeLabel)}${watermark ? '_SAMPLE' : ''}.docx`
+}
+
+/**
+ * Build the document and hand back the bytes instead of saving them.
+ *
+ * `generateMaterials` needs this rather than downloadSchemeDocx: when a
+ * teacher asks for every subject in a grade the files are bundled into one
+ * .zip, which is impossible if the exporter saves each one as it goes.
+ */
+export async function buildSchemeDocx({
   subjectName,
   gradeLabel = 'Basic 1',
   term,
@@ -100,8 +111,14 @@ export async function downloadSchemeDocx({
 
   const doc = new Document({ sections: [{ children }] })
   const blob = await Packer.toBlob(doc)
-  saveBlob(
+  return {
     blob,
-    `Scheme-of-Learning_${safeName(subjectName)}_Term-${term}_${safeName(gradeLabel)}${watermark ? '_SAMPLE' : ''}.docx`,
-  )
+    filename: schemeFilename({ subjectName, term, gradeLabel, watermark }),
+  }
+}
+
+/** Build and save in one step — the path the forecast screen uses. */
+export async function downloadSchemeDocx(args) {
+  const { blob, filename } = await buildSchemeDocx(args)
+  saveBlob(blob, filename)
 }
