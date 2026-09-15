@@ -61,6 +61,42 @@ sys.path.insert(0, str(TOOLS))
 
 app = Flask(__name__)
 
+# ── CORS ───────────────────────────────────────────────────────────────────
+# The deployed portal is served from a different origin (Vercel) than this
+# service (Cloud Run), so the browser treats every call as cross-origin and
+# sends an OPTIONS preflight before the real request. Without these headers
+# the browser blocks the response and Generate silently fails in production
+# even though the service returned 200.
+#
+# Set ALLOWED_ORIGINS to the portal's exact origin in production, e.g.
+#   ALLOWED_ORIGINS=https://beacon-consult.vercel.app
+# Comma-separate several if you use preview deployments. It defaults to "*"
+# so local smoke tests keep working.
+ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+
+
+@app.before_request
+def _cors_preflight():
+    """Answer the browser's preflight without running the route."""
+    if request.method == "OPTIONS":
+        return ("", 204)
+
+
+@app.after_request
+def _cors_headers(resp):
+    origin = request.headers.get("Origin", "")
+    if ALLOWED_ORIGINS == ["*"]:
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+    elif origin in ALLOWED_ORIGINS:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Vary"] = "Origin"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    # Generation can take ~30s; tell the browser not to preflight every call.
+    resp.headers["Access-Control-Max-Age"] = "600"
+    return resp
+
+
 GENERATORS = {
     "scheme": TOOLS / "generate_schemes.py",
     "record": TOOLS / "generate_records_of_work.py",
