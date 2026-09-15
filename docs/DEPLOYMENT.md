@@ -1,187 +1,183 @@
 # Deployment
 
-Three hosts, each doing one job:
+Two hosts, both already on free tiers:
 
 | Host | Serves | Status |
 |---|---|---|
-| **Firebase** | Authentication, Firestore | already live |
 | **Vercel** | the React portal (static build) | already live |
-| **Cloud Run** | the Material Service (Python container) | **to do** |
-
-The Material Service is the only new piece. It is Python — it cannot run on
-Vercel, which serves static files and JS functions only.
+| **Firebase** | Authentication, Firestore | already live |
 
 ```
 browser ──► Vercel (React app)
               │
-              ├──► Firebase   (sign in, Firestore)
-              └──► Cloud Run  (generate .docx)   ← cross-origin, needs CORS
+              ├──► Firebase      (sign in, Firestore)
+              └──► /curriculum/  (static JSON, same origin)
 ```
+
+**No third host is required.** Schemes of Learning and Records of Work are
+both assembled in the browser from data shipped in the static bundle — see
+[How generation works](#how-generation-works) below. The Material Service
+(`service/`) is optional and only useful for bulk jobs; it is not on the
+critical path.
 
 ---
 
-## 1. One-time setup
+## 1. Environment variables
+
+In **Vercel → your project → Settings → Environment Variables**:
+
+```
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
+```
+
+That is the complete list. `VITE_MATERIALS_URL` is **not** needed unless you
+choose to run the service — see [Optional: the Material
+Service](#optional-the-material-service).
+
+> Vite bakes `VITE_*` variables in **at build time**. Changing a value without
+> rebuilding has no effect — redeploy after any change.
+
+---
+
+## 2. Firebase checklist
+
+Before a demo, confirm:
+
+- [ ] The 6 `VITE_FIREBASE_*` variables above are set in Vercel
+- [ ] Your Vercel domain is in Firebase Console → Authentication →
+      **Settings → Authorised domains**
+- [ ] Firestore rules are published (done — via the Firebase console)
+- [ ] `app/vercel.json` rewrites everything to `index.html`, so client-side
+      routing survives a refresh ✓ (already committed)
+
+---
+
+## 3. Build
+
+The curriculum JSON is generated, not committed — `app/public/curriculum/` is
+gitignored because it is 38 MB and rebuildable from `data/`. The build script
+handles this:
 
 ```bash
-# Install the Google Cloud CLI: https://cloud.google.com/sdk/docs/install
-gcloud init
-gcloud auth login
+cd app
+yarn install
+yarn build          # runs `yarn curriculum` first, then `vite build`
+```
 
-# Your Firebase project IS a Google Cloud project — reuse it.
-gcloud projects list
-export PROJECT_ID=<your-firebase-project-id>
-gcloud config set project $PROJECT_ID
+`build` is `yarn curriculum && vite build` for exactly this reason. A bare
+`vite build` from a fresh checkout produces an app that 404s on every
+`/curriculum/*.json` fetch.
 
-# First run only: enable the APIs Cloud Run needs
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com
+Expected output:
+
+```
+43 files · 4040 indicators · 13140 scheduled lessons
+dist/curriculum/   44 files
 ```
 
 ---
 
-## 2. Build the image
+## 4. Verify before you demo
+
+In the browser, signed in:
+
+- [ ] `/portal/materials` populates the grade and subject dropdowns
+- [ ] **Scheme of Learning** downloads, with your school name on the cover
+- [ ] **Record of Work** downloads — landscape, with week separator rows and
+      the signature block
+- [ ] "All subjects" produces a `.zip`
+- [ ] DevTools console shows no errors
+
+To confirm the bundle is complete on a deployed URL:
+
+```bash
+curl -s -o /dev/null -w "grades.json    %{http_code}  %{size_download} bytes\n" \
+  https://YOUR-APP.vercel.app/curriculum/grades.json
+curl -s -o /dev/null -w "b4_schemes     %{http_code}  %{size_download} bytes\n" \
+  https://YOUR-APP.vercel.app/curriculum/b4_schemes.json
+```
+
+Both should return `200`. A `404` on either means the build ran without
+`yarn curriculum`.
+
+---
+
+## How generation works
+
+| Document | Source file | Size | Built by |
+|---|---|---|---|
+| Scheme of Learning | `<grade>_schemes.json` | ~157 KB | `app/src/lib/clientScheme.js` |
+| Record of Work | `<grade>_schedules.json` | ~3.1 MB | `app/src/lib/clientRecord.js` |
+
+Both use the `docx` npm package that the app already depends on, and both
+mirror their Python counterparts in `tools/` — same columns, widths, week
+separators and truncation limits, so the browser output matches the
+server output.
+
+The 3.1 MB schedules file is only fetched when someone actually asks for a
+record, and is cached per session. Schemes never touch it.
+
+**Consequences worth knowing:**
+
+- Generation is instant — no network round trip, no cold start.
+- No CORS, no auth token, no server to keep alive.
+- Data lives in `public/`, fetched on demand, so it does *not* count against
+  Vercel's bundle limits — but it is Vercel bandwidth.
+
+---
+
+## Optional: the Material Service
+
+`service/` is a Flask container producing the same two documents server-side.
+It is worth running only if you need bulk generation (e.g. every subject for
+every grade in one job), which is awkward in a browser.
+
+If you do run it, it needs a host Vercel cannot provide. Cloud Run is the
+natural fit, since your Firebase project *is* a Google Cloud project.
 
 Build from the **repo root** — the Dockerfile copies `data/` and `tools/` in,
-so the context must be the whole repository.
+so the context must be the whole repository:
 
 ```bash
-cd ~/dev-area/staff-common-room
+export PROJECT_ID=<your-firebase-project-id>
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com
 
 gcloud builds submit \
   --tag gcr.io/$PROJECT_ID/beacon-materials \
   --file service/Dockerfile \
   .
+
+gcloud run deploy beacon-materials \
+  --image gcr.io/$PROJECT_ID/beacon-materials \
+  --region africa-south1 \
+  --allow-unauthenticated \
+  --timeout 300 --memory 1Gi \
+  --set-env-vars "REQUIRE_AUTH=1,ALLOWED_ORIGINS=https://YOUR-APP.vercel.app"
 ```
 
 > ⚠️ **Do not use `gcloud run deploy --source .`** from the repo root. Cloud
 > Run looks for a `Dockerfile` in the source directory; ours is at
 > `service/Dockerfile`, so it falls back to buildpacks, finds
-> `app/package.json`, and builds a **Node** image instead of the Flask
-> service. If you deploy from source, point it at `service/` — but then
-> `COPY data/` and `COPY tools/` fail because the context is wrong. Build the
-> image explicitly as shown above.
+> `app/package.json`, and builds a **Node** image instead of the Flask app.
 
-The image is large (~200 MB+) because it carries the 73 lesson files and the
-curriculum databases. That is deliberate — it makes the container
-self-contained with no volume mount.
-
----
-
-## 3. Deploy to Cloud Run
-
-`africa-south1` (Johannesburg) is the closest region to Ghana.
-
-```bash
-gcloud run deploy beacon-materials \
-  --image gcr.io/$PROJECT_ID/beacon-materials \
-  --region africa-south1 \
-  --platform managed \
-  --allow-unauthenticated \
-  --timeout 300 \
-  --memory 1Gi \
-  --min-instances 0 \
-  --max-instances 3 \
-  --set-env-vars "REQUIRE_AUTH=1,ALLOWED_ORIGINS=https://YOUR-APP.vercel.app"
-```
-
-Replace `YOUR-APP.vercel.app` with your real Vercel domain. If you use Vercel
-preview deployments, add them comma-separated.
-
-Environment variables:
-
-| Var | Value | Why |
-|---|---|---|
-| `REQUIRE_AUTH` | `1` | Without it anyone who finds the URL can generate unlimited documents. The portal already sends a Firebase ID token — `Materials.jsx` fetches one and `materialService.js` sends it as `Authorization: Bearer …` |
-| `ALLOWED_ORIGINS` | your Vercel origin | Pins CORS to your portal. Without it the service allows `*` |
-| `GENERATE_TIMEOUT` | `300` (default) | A whole-grade Record of Work set takes ~28 s |
-
-When it finishes, gcloud prints the service URL:
-
-```
-https://beacon-materials-XXXXXX-ew.a.run.app
-```
-
-**Copy it.**
-
----
-
-## 4. Point the portal at it
-
-In **Vercel → your project → Settings → Environment Variables**, add:
+Then point the app at it and redeploy:
 
 ```
 VITE_MATERIALS_URL = https://beacon-materials-XXXXXX-ew.a.run.app
 ```
 
-Apply to Production (and Preview, if you want previews to generate).
+Notes:
 
-Then **redeploy** — Vite bakes `VITE_*` variables in at build time, so
-changing the value without rebuilding has no effect:
-
-```bash
-git commit --allow-empty -m "Rebuild with VITE_MATERIALS_URL"
-git push
-```
-
-or trigger **Deployments → Redeploy** in the Vercel dashboard.
-
----
-
-## 5. Firebase + Vercel checklist
-
-Firebase is already live, but confirm these before a demo:
-
-- [ ] The 6 `VITE_FIREBASE_*` variables are set in Vercel
-  (`API_KEY`, `AUTH_DOMAIN`, `PROJECT_ID`, `STORAGE_BUCKET`,
-  `MESSAGING_SENDER_ID`, `APP_ID`)
-- [ ] Your Vercel domain is in Firebase Console → Authentication →
-  **Settings → Authorised domains**
-- [ ] Firestore rules are published (done — via the Firebase console)
-- [ ] `app/vercel.json` rewrites everything to `index.html` so client-side
-  routing works on refresh ✓ (already committed)
-
----
-
-## 6. Verify before you demo
-
-```bash
-SERVICE=https://beacon-materials-XXXXXX-ew.a.run.app
-
-# 1. Health — must report 73 lesson files and HTTP 200
-curl -i $SERVICE/health
-
-# 2. CORS preflight — must return 204 with Allow-Origin
-curl -i -X OPTIONS $SERVICE/generate \
-  -H "Origin: https://YOUR-APP.vercel.app" \
-  -H "Access-Control-Request-Method: POST" \
-  -H "Access-Control-Request-Headers: content-type,authorization"
-
-# 3. Generate a real document end to end
-curl -X POST $SERVICE/generate \
-  -H "Content-Type: application/json" \
-  -H "Origin: https://YOUR-APP.vercel.app" \
-  -d '{"kind":"scheme","grade":"B4","subject":"math","term":1,"school":"Achimota School"}' \
-  -o scheme.docx -w "HTTP %{http_code}  %{size_download} bytes\n"
-```
-
-Then in the browser, signed in:
-
-- [ ] `/portal/materials` loads the grade and subject dropdowns (proves
-      `/catalog` is reachable across origins)
-- [ ] Generate produces a download with your school name on the cover
-- [ ] The DevTools console shows **no** CORS errors
-
----
-
-## Notes
-
-- **Cold starts.** With `--min-instances 0` an idle service sleeps; the first
-  request after idle can take 10–30 s while it boots and loads the data. For
-  a school demo, warm it up by calling `/health` a minute beforehand, or set
-  `--min-instances 1` (costs more, stays fast).
 - **`--allow-unauthenticated` is intentional.** It lets the browser reach the
-  service; `REQUIRE_AUTH=1` is what actually protects it. Without
-  `--allow-unauthenticated`, Google's own IAM would block every request before
-  your token check ever ran.
-- **Cost.** Cloud Run bills per request and per CPU-second while serving. With
-  `--min-instances 0` an idle service costs essentially nothing, and the free
-  tier covers a great deal of early use.
+  service at all; `REQUIRE_AUTH=1` is what actually protects it. Without it,
+  Google's IAM rejects the request before your token check ever runs.
+- **Cold starts.** With `--min-instances 0` an idle service sleeps and the
+  first request can take 10–30 s.
+- **CORS** is handled in `service/main.py` and pinned to your portal's origin
+  via `ALLOWED_ORIGINS`. Without it the browser blocks every cross-origin
+  call.

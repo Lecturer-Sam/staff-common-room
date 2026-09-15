@@ -1,20 +1,27 @@
 # Beacon Material Service
 
-An HTTP wrapper around the two Python document generators, so the web portal can
+An HTTP wrapper around the two Python document generators, so a caller can
 produce **Schemes of Learning** and **Records of Work** on demand, pre-printed
 with the requesting school's details.
 
-This is the missing link between the portal and the generators: the generators
-are Python and CLI-driven, the portal is React, and until now nothing could
-bridge them.
+> **The portal no longer uses this service.** As of `0d465a2` both document
+> kinds are built in the browser from the shipped curriculum JSON — see
+> `app/src/lib/clientScheme.js` and `app/src/lib/clientRecord.js`. That removed
+> the need for a Python host entirely, so the app runs on Vercel + Firebase
+> alone.
+>
+> The service is retained for **bulk generation** (every subject for every
+> grade in one job), which is awkward in a browser. Nothing on
+> `/portal/materials` calls it unless `VITE_MATERIALS_URL` is set. See
+> `docs/DEPLOYMENT.md`.
 
 ```
-Portal (React)  ──POST /generate──▶  Material Service (Cloud Run)
-                                          │
-                                          ├─ generate_schemes.py
-                                          └─ generate_records_of_work.py
-                                          │
-                     .docx / .zip  ◀──────┘
+Caller  ──POST /generate──▶  Material Service (Cloud Run)
+                                   │
+                                   ├─ generate_schemes.py
+                                   └─ generate_records_of_work.py
+                                   │
+              .docx / .zip  ◀──────┘
 ```
 
 ---
