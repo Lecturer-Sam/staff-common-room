@@ -152,12 +152,24 @@ rather than trusting request bodies.
 
 `africa-south1` (Johannesburg) is the closest region to Ghana.
 
+Build the image first, from the repo root (the Dockerfile copies `data/` and
+`tools/` in, so the context must be the whole repository):
+
+```bash
+gcloud builds submit \
+  --tag gcr.io/$PROJECT_ID/beacon-materials \
+  --file service/Dockerfile \
+  .
+```
+
+Then deploy:
+
 ```bash
 gcloud run deploy beacon-materials \
-  --source . \
+  --image gcr.io/$PROJECT_ID/beacon-materials \
   --region africa-south1 \
   --allow-unauthenticated \
-  --set-env-vars REQUIRE_AUTH=1 \
+  --set-env-vars "REQUIRE_AUTH=1,ALLOWED_ORIGINS=https://YOUR-APP.vercel.app" \
   --timeout 300 \
   --memory 1Gi
 ```
@@ -168,10 +180,19 @@ Then point the portal at it:
 VITE_MATERIALS_URL=https://beacon-materials-xxxxx-ew.a.run.app
 ```
 
+> Full walkthrough, including the Vercel environment variables and a
+> verification checklist: **`docs/DEPLOYMENT.md`**.
+
 ### Notes
 
-- **`--source .` builds from the repo root, not `service/`.** The Dockerfile
-  copies the curriculum data in, so the image is self-contained.
+- **Do not use `gcloud run deploy --source .` from the repo root.** Cloud Run
+  looks for a `Dockerfile` in the source directory; ours is at
+  `service/Dockerfile`, so it falls back to buildpacks, finds
+  `app/package.json` and builds a Node image instead of the Flask service.
+  Build the image explicitly with `gcloud builds submit --file` as above.
+- The image is self-contained — the curriculum data is baked in, so no volume
+  mount is needed. CORS is handled in `service/main.py` and pinned to the
+  portal's origin via `ALLOWED_ORIGINS`.
 - **The image is large (~200 MB+).** It carries 73 enriched lesson files
   (~34 MB) plus the curriculum DBs. If that becomes a problem, move the data to
   a Cloud Storage bucket mounted at startup.

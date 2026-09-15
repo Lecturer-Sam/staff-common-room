@@ -33,8 +33,21 @@ Run locally
 
 Deploy (Cloud Run — africa-south1 is the closest region to Ghana)
 -----------------------------------------------------------------
-    gcloud run deploy beacon-materials --source . --region africa-south1 \
-        --allow-unauthenticated --set-env-vars REQUIRE_AUTH=1
+Build from the repo root, then deploy the image. Do NOT use
+`run deploy --source .`: Cloud Run looks for a Dockerfile in the source
+directory, ours is at service/Dockerfile, so it falls back to buildpacks,
+finds app/package.json and builds a Node image instead of this Flask app.
+
+    gcloud builds submit --tag gcr.io/$PROJECT/beacon-materials \
+        --file service/Dockerfile .
+
+    gcloud run deploy beacon-materials \
+        --image gcr.io/$PROJECT/beacon-materials \
+        --region africa-south1 --allow-unauthenticated \
+        --timeout 300 --memory 1Gi \
+        --set-env-vars "REQUIRE_AUTH=1,ALLOWED_ORIGINS=https://YOUR-APP.vercel.app"
+
+See docs/DEPLOYMENT.md for the full walkthrough and a verification checklist.
 """
 
 from __future__ import annotations
