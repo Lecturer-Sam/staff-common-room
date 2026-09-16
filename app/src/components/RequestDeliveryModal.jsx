@@ -57,13 +57,13 @@ export default function RequestDeliveryModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="hearth-modal"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" />
+      <div className="hearth-modal__backdrop" />
 
       <div
-        className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+        className="hearth-modal__dialog"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -71,11 +71,11 @@ export default function RequestDeliveryModal({
       >
         <h2
           id="request-delivery-title"
-          className="text-base font-semibold text-slate-900"
+          className="hearth-modal__title"
         >
           Request delivery
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="hearth-modal__copy">
           {materialTitle}
         </p>
 
@@ -128,7 +128,7 @@ export default function RequestDeliveryModal({
             />
           </div>
 
-          <div className="mt-5 flex gap-3">
+          <div className="hearth-modal__actions">
             <button
               type="button"
               onClick={onClose}

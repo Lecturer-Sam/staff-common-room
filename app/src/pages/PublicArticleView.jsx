@@ -54,13 +54,13 @@ export default function PublicArticleView() {
   }, [articleId])
 
   if (article === undefined) return (
-    <div className="min-h-screen bg-white">
+    <div className="public-shell">
       <PublicNav user={user} />
       <p className="mt-16 text-center text-slate-400">Loading…</p>
     </div>
   )
   if (article === null) return (
-    <div className="min-h-screen bg-white">
+    <div className="public-shell">
       <PublicNav user={user} />
       <div className="mt-16 text-center">
         <p className="text-slate-500">Article not found or not publicly available.</p>
@@ -70,7 +70,7 @@ export default function PublicArticleView() {
   )
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="public-shell">
       <PublicNav user={user} />
       <main className="mx-auto max-w-2xl px-4 py-12">
         <Link to="/articles" className="mb-6 inline-block text-sm text-indigo-600 hover:underline">← Back to articles</Link>

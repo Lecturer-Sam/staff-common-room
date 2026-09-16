@@ -44,7 +44,7 @@ export default function PublicVacancies() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="public-shell">
       {/* Public nav (mirrors the landing page) */}
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">

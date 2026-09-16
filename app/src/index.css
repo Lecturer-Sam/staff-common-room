@@ -7,67 +7,60 @@
 /* ===================================================================
    DESIGN TOKENS  (Tailwind v4 is CSS-first; this @theme block is the config)
 
-   Grayscale redesign. Two things happen here:
-   1. We RETARGET the color scales the app already uses -- slate, stone,
-      indigo -- to a neutral gray ramp, so every existing bg-slate-*,
-      border-slate-*, bg-indigo-600 utility across all pages reskins at once.
-   2. We add semantic palette tokens, fluid type, and capped radii.
-
-   Palette anchors:  #e8e8e8 page bg,  #3e3e3e ink/buttons,  #939393 nav/frame.
-   Kept for meaning:  red danger,  emerald/green success,  amber/sky status.
+   Transitional Hearth theme. Existing Tailwind utilities inherit the warm
+   ivory, forest, coral, and ink palette while screens move to semantic CSS.
+   Status colors remain available for danger, success, warning, and info.
    =================================================================== */
 @theme {
   /* Semantic palette -- also generates bg-*, text-*, border-* utilities. */
-  --color-canvas:    #e8e8e8; /* page background */
-  --color-surface:   #f5f5f5; /* card / raised surface */
-  --color-nav:       #939393; /* navbar / sidebar chrome */
-  --color-brand:       #047857; /* emerald-700 - primary/accent: buttons, links, active, focus */
-  --color-brand-hover: #065f46; /* emerald-800 - hover/pressed */
-  --color-brand-soft:  #d1fae5; /* emerald-100 - subtle accent backgrounds/badges */
-  --color-brand-ring:  #34d399; /* emerald-400 - focus ring glow */
-  --color-ink:       #3e3e3e; /* charcoal - strong body/heading text */
-  --color-frame:     #cfcfcf; /* hairline borders on light */
+  --color-canvas:      #f3f1eb; /* warm page background */
+  --color-surface:     #fbfaf7; /* paper card / raised surface */
+  --color-nav:         #263b34; /* deep forest navigation */
+  --color-brand:       #263b34; /* deep forest primary */
+  --color-brand-hover: #192d27; /* pressed primary */
+  --color-brand-soft:  #dfe8df; /* quiet forest tint */
+  --color-brand-ring:  #ec7048; /* coral focus/accent */
+  --color-ink:         #20312c; /* warm forest ink */
+  --color-frame:       #dedcd3; /* warm hairline */
 
   /* Neutral ramp -- retargets slate-* for structure, text, borders. */
-  --color-slate-50:  #f5f5f5;
-  --color-slate-100: #e8e8e8;
-  --color-slate-200: #d7d7d7;
-  --color-slate-300: #bcbcbc;
-  --color-slate-400: #939393;
-  --color-slate-500: #7c7c7c;
-  --color-slate-600: #5e5e5e;
-  --color-slate-700: #4a4a4a;
-  --color-slate-800: #3e3e3e;
-  --color-slate-900: #2c2c2c;
-  --color-slate-950: #1e1e1e;
+  --color-slate-50:  #f8f6f1;
+  --color-slate-100: #eeece5;
+  --color-slate-200: #dedcd3;
+  --color-slate-300: #cbc8bd;
+  --color-slate-400: #9ba39f;
+  --color-slate-500: #7f8984;
+  --color-slate-600: #68736e;
+  --color-slate-700: #4f5d58;
+  --color-slate-800: #364640;
+  --color-slate-900: #20312c;
+  --color-slate-950: #15241f;
 
-  /* stone-* -- old warm sidebar text -- mapped to the same neutral ramp. */
-  --color-stone-50:  #f5f5f5;
-  --color-stone-100: #e8e8e8;
-  --color-stone-200: #d7d7d7;
-  --color-stone-300: #bcbcbc;
-  --color-stone-400: #939393;
-  --color-stone-500: #7c7c7c;
-  --color-stone-600: #5e5e5e;
-  --color-stone-700: #4a4a4a;
-  --color-stone-800: #3e3e3e;
-  --color-stone-900: #2c2c2c;
-  --color-stone-950: #1e1e1e;
+  /* stone-* -- warm neutral compatibility for legacy utilities. */
+  --color-stone-50:  #f8f6f1;
+  --color-stone-100: #eeece5;
+  --color-stone-200: #dedcd3;
+  --color-stone-300: #cbc8bd;
+  --color-stone-400: #9ba39f;
+  --color-stone-500: #7f8984;
+  --color-stone-600: #68736e;
+  --color-stone-700: #4f5d58;
+  --color-stone-800: #364640;
+  --color-stone-900: #20312c;
+  --color-stone-950: #15241f;
 
-  /* Primary/accent -- retargets indigo-* to emerald so un-migrated pages
-     using literal indigo utilities match --color-brand. 600 maps to
-     emerald-700 so white-on-accent buttons and accent-text-on-light pass AA. */
-  --color-indigo-50:  #ecfdf5;
-  --color-indigo-100: #d1fae5;
-  --color-indigo-200: #a7f3d0;
-  --color-indigo-300: #6ee7b7;
-  --color-indigo-400: #34d399;
-  --color-indigo-500: #10b981;
-  --color-indigo-600: #047857;
-  --color-indigo-700: #065f46;
-  --color-indigo-800: #064e3b;
-  --color-indigo-900: #064e3b;
-  --color-indigo-950: #022c22;
+  /* indigo-* -- retargeted to Hearth forest for un-migrated controls. */
+  --color-indigo-50:  #f0f4ef;
+  --color-indigo-100: #dfe8df;
+  --color-indigo-200: #c2d1c3;
+  --color-indigo-300: #9fb59f;
+  --color-indigo-400: #789878;
+  --color-indigo-500: #496d5f;
+  --color-indigo-600: #263b34;
+  --color-indigo-700: #192d27;
+  --color-indigo-800: #152620;
+  --color-indigo-900: #10201b;
+  --color-indigo-950: #091511;
 
   /* Radius -- held to 8-12px. Bump md to 8 so rounded-md controls comply;
      lg stays 8, xl stays 12, cap 2xl/3xl at 12. */
@@ -99,12 +92,12 @@
 
 /* Base */
 body {
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Manrope', Inter, ui-sans-serif, system-ui, sans-serif;
   @apply bg-canvas text-slate-800 antialiased;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11"; /* Inter numeric variants */
 }
 
-/* Shared typography vocabulary used across all pages, now grayscale + fluid. */
+/* Shared typography vocabulary used while pages migrate to semantic Hearth classes. */
 @layer components {
   .page-title {
     @apply text-2xl font-bold tracking-tight text-slate-900;
@@ -130,7 +123,7 @@ body {
     @apply mb-1 block text-[11px] font-semibold tracking-wide text-slate-500 uppercase;
   }
 
-  /* Light card with a gray frame -- the redesign primary surface. */
+  /* Paper card with a warm hairline -- the Hearth primary surface. */
   .card {
     @apply rounded-xl border border-frame bg-surface shadow-sm;
   }

@@ -79,12 +79,13 @@ src/
   main.jsx            # entry: provider stack + router
   App.jsx             # route table + protected layout
   firebase.js         # Firebase init (the only place SDK is configured)
-  index.css           # design tokens (@theme) + shared classes
+  index.css           # Tailwind compatibility theme during phased migration
+  styles/hearth.css   # canonical Hearth tokens + app-wide visual layer
   context/            # AuthContext, ToastContext (app-wide state)
   hooks/              # data hooks (useCurriculum, useWisdom, …)
   lib/                # pure helpers + heavy integrations (exporters, calendar math)
   components/         # shared components
-    ui/               # design-system primitives (Button, Card, Field, …)
+    ui/               # semantic primitives + dedicated ui.css
   pages/              # one file per route
 firestore.rules       # THE security gate
 firestore.indexes.json# composite indexes for where+orderBy queries
@@ -98,50 +99,59 @@ firestore.indexes.json# composite indexes for where+orderBy queries
 
 ## Part 2 — The design system (tokens first, then primitives)
 
-Do this **before** feature pages so every feature reuses the same vocabulary. Tailwind v4 is
-CSS-first: an `@theme` block in `index.css` *is* your config. Define semantic tokens once;
-change them in one place forever.
+Do this **before** feature pages so every feature reuses the same vocabulary. The canonical
+Hearth system lives in dedicated CSS: `styles/hearth.css` owns tokens and application shells,
+while `components/ui/ui.css` owns reusable primitives. `index.css` keeps Tailwind v4 available
+only as a compatibility layer while legacy layout utilities are migrated.
 
-**`src/index.css`:**
+**`src/styles/hearth.css`:**
 
 ```css
-@import "tailwindcss";
-
-@theme {
-  /* Semantic palette — also generates bg-*/text-*/border-* utilities */
-  --color-canvas:  #e8e8e8;  /* page background       */
-  --color-surface: #f5f5f5;  /* cards / raised         */
-  --color-ink:     #3e3e3e;  /* body / heading text    */
-  --color-brand:   #047857;  /* primary/accent (AA-safe on light) */
-  --color-brand-hover: #065f46;
-  --color-frame:   #cfcfcf;  /* hairline borders       */
-
-  /* Fluid type — text-* scales with the viewport (min → max) */
-  --text-base: clamp(0.94rem, 0.89rem + 0.25vw, 1.06rem);
-  --text-base--line-height: 1.55;
-  /* …define xs…3xl the same way… */
-
-  --radius-md: 0.5rem;   /* keep controls in an 8–12px band */
+:root {
+  --hearth-canvas: #f3f1eb;       /* warm ivory page */
+  --hearth-paper: #fbfaf7;        /* cream surface */
+  --hearth-ink: #20312c;          /* editorial ink */
+  --hearth-forest: #263b34;       /* primary */
+  --hearth-coral: #ec7048;        /* accent / focus */
+  --hearth-line: #dedcd3;         /* softened border */
+  --hearth-radius-card: 1.15rem;
 }
 
-body { @apply bg-canvas text-ink antialiased; }
+body {
+  color: var(--hearth-ink);
+  font-family: 'Manrope', Inter, ui-sans-serif, system-ui, sans-serif;
+  background: var(--hearth-canvas);
+}
 
-/* A tiny shared vocabulary used across every page */
-@layer components {
-  .page-title  { @apply text-2xl font-bold tracking-tight text-slate-900; }
-  .card        { @apply rounded-xl border border-frame bg-surface shadow-sm; }
-  .grid-responsive { @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4; }
+.page-title {
+  color: var(--hearth-ink);
+  font-family: 'Newsreader', Georgia, serif;
 }
 ```
 
-> **Two power moves.** (1) You can *retarget* Tailwind's built-in scales
-> (`--color-slate-500: #…`) to reskin an entire app without touching a single component.
-> (2) Keeping the `@theme` values semantic (`brand`, not `emerald`) means a rebrand is a
-> one-line change.
+**`src/components/ui/ui.css`:**
+
+```css
+.ui-card {
+  border: 1px solid var(--hearth-line);
+  border-radius: var(--hearth-radius-card);
+  background: var(--hearth-paper);
+}
+
+.ui-button--primary {
+  color: white;
+  background: var(--hearth-forest);
+}
+```
+
+> **Migration rule.** New and redesigned components use semantic class names (`ui-card`,
+> `portal-nav__item`, `hearth-modal`) and dedicated CSS. Tailwind may remain temporarily for
+> legacy layout utilities, but its `@theme` values must mirror Hearth so unmigrated screens do
+> not drift visually. Do not add new one-off color utilities when a semantic class exists.
 >
 > **Gotcha:** Tailwind v4's parser is fussy about **non-ASCII characters in `index.css`
-> comments** (fancy dashes, arrows, apostrophes) — keep those comments plain ASCII or the
-> build throws a cryptic `Missing opening (`.
+> comments** (fancy dashes, arrows, apostrophes) — keep compatibility-layer comments plain
+> ASCII or the build can throw a cryptic `Missing opening (`.
 
 **Primitives** live in `components/ui/`. A joiner + a Button is the whole idea — everything
 else follows the pattern:
@@ -155,15 +165,14 @@ import { Link } from 'react-router-dom'
 import { cn } from './cn'
 
 const VARIANTS = {
-  primary:   'bg-brand text-white shadow-sm hover:bg-brand-hover',
-  secondary: 'border border-frame bg-surface text-slate-700 hover:bg-slate-100',
-  danger:    'bg-red-600 text-white hover:bg-red-700',
+  primary: 'ui-button--primary',
+  secondary: 'ui-button--secondary',
+  danger: 'ui-button--danger',
 }
-const SIZES = { sm: 'px-3 py-1.5 text-xs', md: 'px-4 py-2 text-sm', lg: 'px-5 py-2.5 text-base' }
+const SIZES = { sm: 'ui-button--sm', md: 'ui-button--md', lg: 'ui-button--lg' }
 
 export default function Button({ variant = 'primary', size = 'md', to, className, ...rest }) {
-  const cls = cn('inline-flex items-center justify-center gap-2 rounded-lg font-semibold',
-    'transition-colors disabled:opacity-50', VARIANTS[variant], SIZES[size], className)
+  const cls = cn('ui-button', VARIANTS[variant], SIZES[size], className)
   if (to) return <Link to={to} className={cls} {...rest} />
   return <button type="button" className={cls} {...rest} />
 }
@@ -172,9 +181,9 @@ export default function Button({ variant = 'primary', size = 'md', to, className
 Barrel-export them (`components/ui/index.js`) so pages do
 `import { Button, Card, Field } from '../components/ui'`.
 
-> **Accessibility gotcha:** on a *light* theme, mid-tone accents fail contrast. White text on
-> emerald-600 is only ~3:1 (fails AA); emerald-700 is ~5.5:1 (passes). Check contrast before
-> you commit a brand color. See [`conventions.md`](conventions.md).
+> **Accessibility gotcha:** mid-tone accents can fail contrast on warm paper. Use deep forest
+> for white-on-primary controls and reserve coral for accents, links, and focus treatments.
+> Check contrast before committing token changes. See [`conventions.md`](conventions.md).
 
 ---
 
@@ -467,7 +476,7 @@ See [`playbooks.md`](playbooks.md) for step-by-step feature recipes.
 ## Part 8 — Cross-cutting concerns (add once, reuse everywhere)
 
 - **Toasts** — a `ToastProvider` + `useToast()` (`toast.success/error/info`) beats scattering
-  alert UI. Keep semantic colors (green/red) even in a grayscale theme.
+  alert UI. Keep semantic success/danger colors within the Hearth palette.
 - **Confirm dialog** — replace `window.confirm()` with a `<ConfirmModal>` driven by state:
   `setConfirm({ title, body, onConfirm })`. Never hard-delete without it.
 - **Empty & skeleton states** — one `<EmptyState>` and one `<Skeleton*>` set, reused. They

@@ -53,25 +53,22 @@ export function useToast() {
 
 const STYLES = {
   success: {
-    bar: 'bg-emerald-600',
     icon: (
-      <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-emerald-500 shrink-0">
+      <svg viewBox="0 0 20 20" fill="currentColor" className="hearth-toast__icon">
         <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
       </svg>
     ),
   },
   error: {
-    bar: 'bg-red-500',
     icon: (
-      <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-red-500 shrink-0">
+      <svg viewBox="0 0 20 20" fill="currentColor" className="hearth-toast__icon">
         <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
       </svg>
     ),
   },
   info: {
-    bar: 'bg-indigo-500',
     icon: (
-      <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-indigo-500 shrink-0">
+      <svg viewBox="0 0 20 20" fill="currentColor" className="hearth-toast__icon">
         <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clipRule="evenodd" />
       </svg>
     ),
@@ -79,24 +76,24 @@ const STYLES = {
 }
 
 function Toast({ toast, onDismiss }) {
-  const { bar, icon } = STYLES[toast.type] ?? STYLES.info
+  const { icon } = STYLES[toast.type] ?? STYLES.info
   return (
     <div
       role="alert"
-      className="flex w-80 max-w-[calc(100vw-2rem)] items-start gap-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+      className={`hearth-toast hearth-toast--${toast.type}`}
     >
       {/* coloured left bar */}
-      <div className={`w-1 self-stretch rounded-l-xl ${bar}`} />
-      <div className="flex flex-1 items-start gap-2.5 py-3 pr-3">
+      <div className="hearth-toast__bar" />
+      <div className="hearth-toast__body">
         {icon}
-        <p className="flex-1 text-sm text-slate-700 leading-snug">{toast.message}</p>
+        <p className="hearth-toast__message">{toast.message}</p>
         <button
           type="button"
           onClick={() => onDismiss(toast.id)}
           aria-label="Dismiss"
-          className="shrink-0 text-slate-400 hover:text-slate-600"
+          className="hearth-toast__dismiss"
         >
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-3.5 w-3.5">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="hearth-toast__dismiss-icon">
             <line x1="4" y1="4" x2="12" y2="12" />
             <line x1="12" y1="4" x2="4" y2="12" />
           </svg>
@@ -112,7 +109,7 @@ function ToastContainer({ toasts, onDismiss }) {
     <div
       aria-live="polite"
       aria-label="Notifications"
-      className="fixed bottom-5 right-5 z-50 flex flex-col gap-2"
+      className="hearth-toast-stack"
     >
       {toasts.map((t) => (
         <Toast key={t.id} toast={t} onDismiss={onDismiss} />

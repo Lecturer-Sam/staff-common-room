@@ -1,16 +1,15 @@
 import { cn } from './cn'
 
-/**
- * Card — light surface (#f5f5f5) with a gray frame and 12px radius.
- *
- * Props:
- *   as        element/component to render as (default 'div')
- *   hover     add a subtle lift on hover (for clickable cards)
- *   padding   Tailwind padding classes for the body (default 'p-5')
- *   banner    optional ReactNode rendered as a full-bleed emerald header
- *             (white text) above the body — used for card titles
- *   bannerClassName  extra classes for the banner strip
- */
+const PADDING = {
+  'p-0': 'ui-card__body--none',
+  'p-3': 'ui-card__body--xs',
+  'p-4': 'ui-card__body--sm',
+  'p-5': 'ui-card__body',
+  'p-6': 'ui-card__body--lg',
+  'p-6 sm:p-8': 'ui-card__body--lg',
+  'p-5 sm:p-6': 'ui-card__body ui-card__body--form',
+}
+
 export default function Card({
   as: Tag = 'div',
   hover = false,
@@ -21,24 +20,19 @@ export default function Card({
   children,
   ...rest
 }) {
-  const hoverCls = hover && 'transition-shadow hover:shadow-md'
+  const bodyClass = PADDING[padding] ?? padding
 
   if (banner) {
     return (
-      <Tag
-        className={cn('card flex flex-col overflow-hidden', hoverCls, className)}
-        {...rest}
-      >
-        <div className={cn('bg-brand px-4 py-3 text-white sm:px-5', bannerClassName)}>
-          {banner}
-        </div>
-        <div className={cn('flex flex-1 flex-col', padding)}>{children}</div>
+      <Tag className={cn('ui-card ui-card--banner', hover && 'ui-card--interactive', className)} {...rest}>
+        <div className={cn('ui-card__banner', bannerClassName)}>{banner}</div>
+        <div className={bodyClass}>{children}</div>
       </Tag>
     )
   }
 
   return (
-    <Tag className={cn('card', padding, hoverCls, className)} {...rest}>
+    <Tag className={cn('ui-card', bodyClass, hover && 'ui-card--interactive', className)} {...rest}>
       {children}
     </Tag>
   )

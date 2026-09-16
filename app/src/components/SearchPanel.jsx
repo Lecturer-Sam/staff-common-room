@@ -204,8 +204,8 @@ export default function SearchPanel({ autoFocus = true }) {
     : 0
 
   return (
-    <div>
-      <form onSubmit={submit} className="mb-6 flex gap-2">
+    <div className="search-panel">
+      <form onSubmit={submit} className="search-panel__form">
         <Select
           value={grade}
           onChange={(e) => setGrade(e.target.value)}

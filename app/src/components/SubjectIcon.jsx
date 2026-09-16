@@ -92,12 +92,11 @@ const PATHS = {
 export default function SubjectIcon({ theme, size = 'md' }) {
   const iconKey = theme.icon ?? 'default'
   const paths = PATHS[iconKey] ?? PATHS.default
-  const dim = size === 'lg' ? 'h-12 w-12' : 'h-10 w-10'
-  const iconDim = size === 'lg' ? 'h-6 w-6' : 'h-5 w-5'
+  const sizeClass = size === 'lg' ? ' subject-icon--lg' : ''
 
   return (
     <div
-      className={`flex shrink-0 items-center justify-center rounded-xl ${theme.accent} ${dim} transition-colors`}
+      className={`subject-icon${sizeClass} ${theme.accent}`}
       aria-hidden="true"
     >
       <svg
@@ -107,7 +106,7 @@ export default function SubjectIcon({ theme, size = 'md' }) {
         strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={`${iconDim} ${theme.text}`}
+        className={`subject-icon__glyph ${theme.text}`}
       >
         {paths}
       </svg>

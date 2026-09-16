@@ -21,11 +21,7 @@ function ToolBtn({ active, title, onClick, children }) {
       type="button"
       title={title}
       onMouseDown={(e) => { e.preventDefault(); onClick() }}
-      className={`flex h-7 w-7 items-center justify-center rounded text-sm transition
-        ${active
-          ? 'bg-indigo-100 text-indigo-700'
-          : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-        }`}
+      className={`rich-editor__tool${active ? ' is-active' : ''}`}
     >
       {children}
     </button>
@@ -33,7 +29,7 @@ function ToolBtn({ active, title, onClick, children }) {
 }
 
 function Divider() {
-  return <div className="mx-0.5 h-5 w-px bg-slate-200" />
+  return <div className="rich-editor__divider" />
 }
 
 /* ── Toolbar ────────────────────────────────────────────────────────────── */
@@ -52,7 +48,7 @@ function Toolbar({ editor }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
+    <div className="rich-editor__toolbar">
       {/* History */}
       <ToolBtn title="Undo" onClick={() => editor.chain().focus().undo().run()}>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-3.5 w-3.5">
@@ -182,7 +178,7 @@ export default function RichEditor({ content = '', onChange, placeholder = 'Star
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none px-4 py-3',
+        class: 'prose rich-editor__content',
         style: `min-height:${minHeight}px`,
       },
     },
@@ -199,10 +195,10 @@ export default function RichEditor({ content = '', onChange, placeholder = 'Star
   const words = editor?.storage.characterCount.words() ?? 0
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-indigo-400 transition-colors">
+    <div className="rich-editor-shell">
       <Toolbar editor={editor} />
       <EditorContent editor={editor} />
-      <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-3 py-1.5 text-[11px] text-slate-400">
+      <div className="rich-editor__count">
         <span>{words} words</span>
         <span>{chars} characters</span>
       </div>

@@ -48,20 +48,14 @@ export default function OfflineIndicator() {
 
   if (state === 'idle') return null
 
-  const styles = {
-    offline: 'border-amber-300 bg-amber-50 text-amber-800',
-    syncing: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-    synced: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  }[state]
-
   return (
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4"
+      className="offline-indicator"
     >
       <div
-        className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-lg ${styles}`}
+        className={`offline-indicator__pill is-${state}`}
       >
         {state === 'offline' && (
           <>
@@ -72,7 +66,7 @@ export default function OfflineIndicator() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-4 w-4"
+              className="offline-indicator__icon"
             >
               <path d="M1 1l22 22" />
               <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
@@ -94,7 +88,7 @@ export default function OfflineIndicator() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-4 w-4 animate-spin"
+              className="offline-indicator__icon is-spinning"
             >
               <path d="M21 12a9 9 0 1 1-6.219-8.56" />
             </svg>
@@ -110,7 +104,7 @@ export default function OfflineIndicator() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-4 w-4"
+              className="offline-indicator__icon"
             >
               <path d="M20 6L9 17l-5-5" />
             </svg>

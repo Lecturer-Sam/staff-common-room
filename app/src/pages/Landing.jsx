@@ -214,7 +214,7 @@ export default function Landing() {
   const { user } = useAuth()
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="public-shell landing-page">
       {/* Public nav */}
       <header className="sticky top-0 z-10 border-b border-white/10 bg-gradient-to-r from-[#1e293b] to-[#0f172a] backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-4 sm:gap-4">

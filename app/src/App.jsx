@@ -56,7 +56,7 @@ function ProtectedLayout() {
 
   if (loading || (user && profile === undefined)) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-400">
+      <div className="portal-loading">
         Loading…
       </div>
     )
@@ -81,13 +81,13 @@ function ProtectedLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="portal-shell">
       <Sidebar />
-      {/* On mobile: flows below the sticky top bar rendered by Sidebar.
-          On desktop: offset right of the fixed sidebar. */}
-      <div className="lg:ml-56">
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 lg:px-8">
-          <Outlet />
+      <div className="portal-workspace">
+        <main className="portal-main">
+          <div className="portal-page">
+            <Outlet />
+          </div>
         </main>
       </div>
       <OfflineIndicator />

@@ -64,7 +64,7 @@ export default function PublicArticles() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="public-shell">
       <PublicNav user={user} />
       <main className="mx-auto max-w-3xl px-4 py-12">
         <div className="mb-8">

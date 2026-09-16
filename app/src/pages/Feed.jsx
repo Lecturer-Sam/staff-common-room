@@ -248,7 +248,7 @@ export default function Feed() {
   }, [user])
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="dashboard-page">
       <PageHeader
         title={`Welcome, ${firstName}`}
         subtitle="Your teaching hub — plan lessons, build assessments, and track the term."
@@ -256,7 +256,7 @@ export default function Feed() {
 
       {/* Questions nudge (progress now lives in the right-rail widget) */}
       {weekCount !== null && weekCount < WEEKLY_QUOTA && (
-        <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="dashboard-nudge">
           Question Bank: {weekCount}/{WEEKLY_QUOTA} questions this week.{' '}
           <Link to="/portal/questions/new" className="font-semibold underline underline-offset-2">
             Add {WEEKLY_QUOTA - weekCount} more
@@ -265,13 +265,13 @@ export default function Feed() {
       )}
 
       {/* Two columns: search (main) + dashboard sections (right rail) */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section>
+      <div className="dashboard-layout">
+        <section className="dashboard-search">
           <p className="section-heading mb-3">Search everything</p>
           <SearchPanel autoFocus={false} />
         </section>
 
-        <aside className="space-y-4">
+        <aside className="dashboard-rail">
           <CalendarWidget />
           <ProgressWidget info={progressInfo} />
           <QuickActions />

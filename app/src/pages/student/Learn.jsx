@@ -66,9 +66,9 @@ export default function Learn() {
   }
 
   return (
-    <div>
-      <h1 className="page-title mb-1">My quizzes</h1>
-      <p className="mb-6 text-sm text-slate-500">
+    <div className="learning-dashboard">
+      <h1 className="learning-dashboard__title">My quizzes</h1>
+      <p className="learning-dashboard__intro">
         Answer the quizzes your teacher assigns. Multiple-choice questions are marked
         straight away.
       </p>
@@ -82,14 +82,14 @@ export default function Learn() {
           body="When your teacher assigns a quiz to your class it will show up here."
         />
       ) : (
-        <div className="space-y-3">
+        <div className="learning-dashboard__quizzes">
           {quizzes.map((qz) => {
             const best = bestByQuiz[qz.id]
             return (
               <Link
                 key={qz.id}
                 to={`/portal/learn/quiz/${qz.id}`}
-                className="card block p-4 transition-shadow hover:shadow-md"
+                className="learning-quiz-card"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
@@ -104,7 +104,7 @@ export default function Learn() {
                     {best !== undefined && (
                       <Badge variant={best >= 50 ? 'success' : 'warn'}>Best: {best}%</Badge>
                     )}
-                    <span className="rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white">
+                    <span className="learning-quiz-card__action">
                       {best !== undefined ? 'Try again' : 'Start'}
                     </span>
                   </div>
@@ -116,11 +116,11 @@ export default function Learn() {
       )}
 
       {attempts && attempts.length > 0 && (
-        <section className="mt-8">
+        <section className="learning-results">
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">
             Recent results
           </h2>
-          <ul className="card divide-y divide-slate-100">
+          <ul className="learning-results__list">
             {attempts.slice(0, 8).map((a) => {
               const pct = a.total > 0 ? Math.round((a.score / a.total) * 100) : 0
               const qz = (quizzes ?? []).find((x) => x.id === a.quizId)

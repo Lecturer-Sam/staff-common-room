@@ -24,40 +24,38 @@ export default function StudentLayout({ children }) {
   }, [profile?.classroomId])
 
   const navCls = ({ isActive }) =>
-    `rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-      isActive ? 'bg-brand/15 text-brand-ring' : 'text-slate-500 hover:bg-slate-100'
-    }`
+    `student-nav__link${isActive ? ' is-active' : ''}`
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 py-3">
-          <Link to="/portal/learn" className="flex items-center gap-2">
-            <img src="/beaconlogo.png" alt="Beacon" className="h-9 w-9 object-contain" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-slate-900">
+    <div className="student-shell">
+      <header className="student-header">
+        <div className="student-header__inner">
+          <Link to="/portal/learn" className="student-brand">
+            <img src="/beaconlogo.png" alt="Beacon" className="student-brand__logo" />
+            <div className="student-brand__copy">
+              <p className="student-brand__name">
                 {profile?.name || user?.displayName || 'Student'}
               </p>
               {classroomName && (
-                <p className="truncate text-xs text-slate-400">{classroomName}</p>
+                <p className="student-brand__classroom">{classroomName}</p>
               )}
             </div>
           </Link>
-          <nav className="flex items-center gap-1">
+          <nav className="student-nav">
             <NavLink to="/portal/learn" end className={navCls}>
               My quizzes
             </NavLink>
             <button
               type="button"
               onClick={logout}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600"
+              className="student-nav__logout"
             >
               Log out
             </button>
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl px-4 py-6">{children}</main>
+      <main className="student-main">{children}</main>
     </div>
   )
 }

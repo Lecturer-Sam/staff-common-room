@@ -63,14 +63,17 @@ export default function AssignQuizModal({ quiz, subjectId, grade, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" />
+    <div className="hearth-modal" onClick={onClose}>
+      <div className="hearth-modal__backdrop" />
       <div
-        className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+        className="hearth-modal__dialog hearth-modal__dialog--sm"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="assign-quiz-title"
       >
-        <h2 className="text-base font-semibold text-slate-900">Assign to classroom</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <h2 id="assign-quiz-title" className="hearth-modal__title">Assign to classroom</h2>
+        <p className="hearth-modal__copy">
           “{quiz.title}” ({quiz.questions.length} questions) will be playable in-app by the
           class you pick. MCQs are auto-marked.
         </p>
@@ -96,7 +99,7 @@ export default function AssignQuizModal({ quiz, subjectId, grade, onClose }) {
           </select>
         )}
 
-        <div className="mt-5 flex gap-3">
+        <div className="hearth-modal__actions">
           <Button variant="secondary" className="flex-1" onClick={onClose}>
             Cancel
           </Button>

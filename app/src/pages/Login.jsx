@@ -47,7 +47,7 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-8">
+    <div className="auth-shell">
       <Card padding="p-6 sm:p-8" className="w-full max-w-sm">
 
         {/* Brand header */}

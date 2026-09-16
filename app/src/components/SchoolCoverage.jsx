@@ -70,8 +70,8 @@ export default function SchoolCoverage({ members }) {
   const subjectName = (id) => subjects.find((s) => s.id === id)?.name ?? id
 
   return (
-    <section className="mb-8">
-      <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+    <section className="school-coverage">
+      <h2 className="school-coverage__title">
         Curriculum coverage — Term {term}
       </h2>
       {!stats ? (
@@ -81,7 +81,7 @@ export default function SchoolCoverage({ members }) {
           No one in the school has ticked weeks in the Progress tracker for this term yet.
         </p>
       ) : (
-        <div className="card overflow-x-auto p-0">
+        <div className="school-coverage__table-wrap">
           <table className="w-full min-w-[28rem] text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">

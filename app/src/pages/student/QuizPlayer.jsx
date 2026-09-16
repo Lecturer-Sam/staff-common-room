@@ -94,8 +94,8 @@ export default function QuizPlayer() {
   if (result) {
     const pct = result.total > 0 ? Math.round((result.score / result.total) * 100) : null
     return (
-      <div className="mx-auto max-w-xl">
-        <div className="card p-6 text-center">
+      <div className="quiz-player quiz-player--result">
+        <div className="quiz-result">
           <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">
             Quiz finished
           </p>
@@ -124,7 +124,7 @@ export default function QuizPlayer() {
 
         {/* Instant feedback per MCQ */}
         {mcqs.length > 0 && (
-          <div className="mt-6 space-y-3">
+          <div className="quiz-result__review">
             <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
               Check your answers
             </h2>
@@ -133,7 +133,7 @@ export default function QuizPlayer() {
               const mine = answers[qKey(i)]
               const right = mine === q.answer
               return (
-                <div key={i} className={`card border-l-4 p-4 ${right ? 'border-l-emerald-400' : 'border-l-red-400'}`}>
+                <div key={i} className={`quiz-result__answer${right ? ' is-correct' : ' is-incorrect'}`}>
                   <p className="text-sm text-slate-700">
                     {i + 1}. {q.question}
                   </p>
@@ -155,7 +155,7 @@ export default function QuizPlayer() {
           </div>
         )}
 
-        <div className="mt-6 flex justify-center gap-3">
+        <div className="quiz-result__actions">
           <Button variant="secondary" to="/portal/learn">
             Back to my quizzes
           </Button>
@@ -178,23 +178,23 @@ export default function QuizPlayer() {
   const last = idx === questions.length - 1
 
   return (
-    <div className="mx-auto max-w-xl">
-      <nav className="mb-2 text-sm text-slate-500">
-        <Link to="/portal/learn" className="text-indigo-600 hover:underline">
+    <div className="quiz-player">
+      <nav className="quiz-player__breadcrumb">
+        <Link to="/portal/learn" className="quiz-player__breadcrumb-link">
           My quizzes
         </Link>{' '}
         / {quiz.title}
       </nav>
 
       {/* Progress */}
-      <div className="mb-4 flex items-center gap-3">
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200">
+      <div className="quiz-player__progress">
+        <div className="quiz-player__progress-track">
           <div
-            className="h-full rounded-full bg-brand transition-all"
+            className="quiz-player__progress-fill"
             style={{ width: `${((idx + 1) / Math.max(1, questions.length)) * 100}%` }}
           />
         </div>
-        <span className="text-xs text-slate-500">
+        <span className="quiz-player__progress-count">
           {idx + 1} / {questions.length}
         </span>
       </div>
@@ -202,8 +202,8 @@ export default function QuizPlayer() {
       {questions.length === 0 ? (
         <p className="text-slate-500">This quiz has no questions yet.</p>
       ) : (
-        <div className="card p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <div className="quiz-question">
+          <p className="quiz-question__meta">
             Question {idx + 1}
             {current?.type === 'mcq'
               ? ' · multiple choice'
@@ -212,12 +212,12 @@ export default function QuizPlayer() {
                 : ' · short answer (teacher will mark)'}
             {current?.marks ? ` · ${current.marks} mark${current.marks === 1 ? '' : 's'}` : ''}
           </p>
-          <p className="mt-2 whitespace-pre-wrap text-base font-medium text-slate-800">
+          <p className="quiz-question__prompt">
             {current?.question}
           </p>
 
           {current?.type === 'mcq' ? (
-            <div className="mt-4 space-y-2">
+            <div className="quiz-question__options">
               {(current.options ?? []).map((opt, oi) => {
                 const letter = LETTERS[oi]
                 const active = answers[qKey(idx)] === letter
@@ -226,16 +226,10 @@ export default function QuizPlayer() {
                     key={oi}
                     type="button"
                     onClick={() => choose(letter)}
-                    className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-colors ${
-                      active
-                        ? 'border-brand bg-brand/10 font-semibold text-slate-900'
-                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
+                    className={`quiz-question__option${active ? ' is-active' : ''}`}
                   >
                     <span
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                        active ? 'bg-brand text-white' : 'bg-slate-100 text-slate-500'
-                      }`}
+                      className={`quiz-question__option-key${active ? ' is-active' : ''}`}
                     >
                       {letter}
                     </span>
@@ -252,14 +246,14 @@ export default function QuizPlayer() {
               }
               rows={4}
               placeholder="Write your answer here…"
-              className="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none"
+              className="quiz-question__textarea"
             />
           )}
         </div>
       )}
 
       {/* Nav buttons */}
-      <div className="mt-4 flex items-center justify-between">
+      <div className="quiz-player__actions">
         <Button variant="secondary" onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}>
           ← Back
         </Button>
