@@ -29,6 +29,8 @@ import QuestionBank from './pages/QuestionBank'
 import QuestionForm from './pages/QuestionForm'
 import QuestionGenerator from './pages/QuestionGenerator'
 import QuizMaker from './pages/QuizMaker'
+import QuestionAdmin from './pages/QuestionAdmin'
+import GeneratedTests from './pages/GeneratedTests'
 import AuthorPage from './pages/AuthorPage'
 import Search from './pages/Search'
 import Progress from './pages/Progress'
@@ -131,6 +133,8 @@ export default function App() {
         <Route path="questions/new" element={<QuestionForm />} />
         <Route path="questions/generate" element={<QuestionGenerator />} />
         <Route path="questions/quiz" element={<QuizMaker />} />
+        <Route path="questions/admin" element={<QuestionAdmin />} />
+        <Route path="questions/history" element={<GeneratedTests />} />
         <Route path="questions/:questionId/edit" element={<QuestionForm />} />
         <Route path="wall" element={<MyWall />} />
         <Route path="notes" element={<Notes />} />

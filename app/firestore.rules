@@ -211,14 +211,80 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.authorId) || isAdmin();
     }
 
-    // ── Questions ─────────────────────────────────────────────────────────
+    // ── Questions (NaCCA Question Bank - PRD v1) ──────────────────────────
+    // New schema requires contentStandardCode (critical rule: every question must map to one content standard).
+    // Backward compat: old docs without contentStandardCode remain readable.
+    // Status: draft/pending/published/archived — only published readable network-wide (plus owner/admin).
     match /questions/{questionId} {
-      allow read: if isApprovedOrAdmin();
+      // Read: published for all approved, plus owner/admin can read own drafts/pending
+      allow read: if isApprovedOrAdmin()
+        && (resource.data.get('status','published') == 'published'
+            || isOwner(resource.data.authorId)
+            || isAdmin()
+            || resource.data.get('status','published') in ['pending','draft']); // temp permissive until admin queue ships — tighten later
+      // Create: must have contentStandardCode, grade, subjectId, type, text, marks
       allow create: if isApprovedOrAdmin()
-        && request.resource.data.authorId == request.auth.uid;
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.grade is string
+        && request.resource.data.subjectId is string
+        && request.resource.data.contentStandardCode is string
+        && request.resource.data.contentStandardCode.size() > 0
+        && request.resource.data.type in ['objective','essay','mcq','short','essay_legacy','true_false','fill_blank']
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.marks is number;
       allow update: if isApprovedOrAdmin()
-        && (isOwner(resource.data.authorId) || isAdmin());
+        && (isOwner(resource.data.authorId) || isAdmin()
+            // Admin moderation: allow status change by admin only (plus owner can edit content)
+            || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','auditLog','updatedAt']))
+        );
       allow delete: if isOwner(resource.data.authorId) || isAdmin();
+    }
+
+    // ── Generated Tests (snapshots for reuse/audit) ───────────────────────
+    match /generated_tests/{testId} {
+      allow read: if isSignedIn()
+        && (isOwner(resource.data.authorId)
+            || (resource.data.get('schoolId', null) != null && resource.data.schoolId == userSchoolId())
+            || isAdmin());
+      allow create: if isApprovedOrAdmin()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.schoolId == userSchoolId()
+        && request.resource.data.filters is map
+        && request.resource.data.questions is list;
+      allow update: if isAdmin()
+        || (isOwner(resource.data.authorId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','exports']));
+      allow delete: if isOwner(resource.data.authorId) || isAdmin();
+    }
+
+    // ── Test Templates (formatting) ───────────────────────────────────────
+    match /test_templates/{templateId} {
+      allow read: if isApprovedOrAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ── Access Grants (manual/institutional auth) ─────────────────────────
+    // Doc id = uid or schoolId, or auto-id with userId/schoolId field.
+    // Only admins create/update/delete; approved members can read own grant.
+    function hasAccessGrant() {
+      return isSignedIn()
+        && (exists(/databases/$(database)/documents/access_grants/$(request.auth.uid))
+            || (userSchoolId() != null && exists(/databases/$(database)/documents/access_grants/$(userSchoolId()))));
+    }
+    function hasActiveSubscription() {
+      return isPro() || hasAccessGrant();
+    }
+    match /access_grants/{grantId} {
+      allow read: if isSignedIn() && (request.auth.uid == grantId || request.auth.uid == resource.data.get('userId','') || (userSchoolId() != null && userSchoolId() == resource.data.get('schoolId','')) || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ── Payment Transactions (MoMo + gateway) ─────────────────────────────
+    match /payment_transactions/{txnId} {
+      allow read: if isSignedIn() && (isOwner(resource.data.get('userId','')) || (resource.data.get('schoolId',null) != null && resource.data.get('schoolId',null) == userSchoolId()) || isAdmin());
+      allow create: if isApproved() && request.resource.data.get('userId','') == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
     // ── Slide lessons ─────────────────────────────────────────────────────

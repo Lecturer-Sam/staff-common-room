@@ -2,29 +2,32 @@ import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firest
 import { db } from '../firebase'
 
 /**
- * SaaS subscription layer (Phase 1 — see docs/saas-gap-analysis.md).
- *
+ * SaaS subscription layer — PRD Phase 3
  * Model: one doc per member at `subscriptions/{uid}`.
- *   planId   'free' | 'pro' | 'school'
- *   status   'none' | 'requested' | 'active' | 'cancelled' | 'rejected'
- *   exports  { month: 'YYYY-MM', count }  — free-tier export meter
+ *   planId   'free' | 'pro' | 'school' | 'institutional'
+ *   status   'none' | 'requested' | 'active' | 'cancelled' | 'rejected' | 'expired'
+ *   exports  { month: 'YYYY-MM', count }
  *
- * Payments are collected out-of-band via Mobile Money; the member submits
- * their MoMo number + transaction reference and an admin activates the
- * subscription from /portal/billing (same manual "mark as paid" pattern
- * proven by the Deliveries module — see docs/deliveries-roadmap.md).
+ * Payments: Ghana-focused — MTN MoMo, Telecel, AT, cards via Paystack/Hubtel.
+ * Manual MoMo path remains primary until 50 schools (OPPORTUNITY_MAP.md).
+ * Access grants (access_grants/{uid|schoolId}) provide manual/institutional bypass.
  */
 
 export const FREE_EXPORT_LIMIT = 5
 
-// MoMo details shown on the upgrade form. Edit here when the merchant
-// number changes (a Cloud Function + gateway webhook replaces this manual
-// loop in a later phase).
+// Ghana MoMo details — PRD §8: prioritize local channels (cards + MoMo), keep manual path
 export const PAYMENT_INSTRUCTIONS = {
-  method: 'Mobile Money (MTN / Telecel / AT)',
-  momoNumber: '054 042 3359', // TODO: replace with the Beacon merchant number
+  method: 'Mobile Money (MTN / Telecel / AT) or Card via Paystack',
+  momoNumber: '054 042 3359', // Beacon merchant — TODO: replace with real merchant number
+  momoNumbers: {
+    mtn: '054 042 3359',
+    telecel: '020 000 0000', // placeholder — update with real
+    at: '027 000 0000', // placeholder
+  },
   accountName: 'Beacon Educational Consult',
-  note: 'After paying, enter the MoMo number you paid from and the transaction reference below. Your plan is activated once the payment is confirmed.',
+  paystackLink: null, // TODO: add Paystack payment link when gateway webhook ships (Phase 5)
+  note: 'Pay via MoMo to the number above, or card via Paystack when link is available. After paying, enter the MoMo number you paid from and the transaction reference below. Your plan activates once confirmed (usually within hours). For institutional offline payments, contact admin for manual authorization.',
+  institutionalNote: 'Schools paying offline (bank transfer, cheque) get perpetual institutional license via access_grants — no expiry until revoked.',
 }
 
 export const PLANS = {
@@ -33,12 +36,12 @@ export const PLANS = {
     name: 'Free',
     price: '₵0',
     period: 'forever',
-    tagline: 'Browse the curriculum and start planning',
+    tagline: 'Browse curriculum and start planning',
     features: [
-      'Full NaCCA curriculum (KG–B9)',
+      'Full NaCCA curriculum (KG–B9) — 4,040 indicators',
       'Schemes of learning & lesson plans',
       `${FREE_EXPORT_LIMIT} document downloads / month`,
-      'Question bank contributions',
+      'Question bank: browse + 5 contributions/week',
       'Teacher feed, articles & study notes',
     ],
   },
@@ -48,31 +51,49 @@ export const PLANS = {
     price: '₵29',
     period: 'per month',
     tagline: 'Unlimited planning and assessment tools',
+    popular: true,
     features: [
       'Everything in Free',
       'Unlimited PDF / Word downloads',
-      'Unlimited exam papers & quizzes',
-      'Quiz Maker PowerPoint exports',
-      'Priority support',
+      'Unlimited exam papers (NaCCA-aligned, content-standard filter)',
+      'Question bank: unlimited generation, difficulty balancing, answer key',
+      'Quiz Maker PPTX + classroom assignments',
+      'Generated test history & audit trail',
+      'Priority support via WhatsApp',
     ],
   },
   school: {
     id: 'school',
-    name: 'School',
-    price: '₵99',
-    period: 'per month',
-    comingSoon: true,
-    tagline: 'A workspace for your whole school (coming soon)',
+    name: 'School Standard',
+    price: '₵4,500',
+    period: 'per year',
+    tagline: 'Workspace for whole school — the real business (OPPORTUNITY_MAP.md)',
     features: [
       'Everything in Pro',
-      'Up to 10 teacher seats',
-      'School-wide scheme library',
-      'Coverage analytics dashboard',
+      'Up to 30 teacher seats',
+      'School-wide scheme library + coverage analytics',
+      'School-shared question bank (private + shared)',
+      'Multi-campus support (Chain from GHS 12,000/yr)',
+      'School name locked on generated papers',
+    ],
+  },
+  institutional: {
+    id: 'institutional',
+    name: 'Institutional',
+    price: 'Custom',
+    period: 'perpetual',
+    tagline: 'Offline payment, manual authorization',
+    features: [
+      'Perpetual license until revoked',
+      'Bank transfer / cheque / MoMo offline',
+      'Manual grant via access_grants',
+      'Same features as School Standard',
+      'Dedicated onboarding',
     ],
   },
 }
 
-/** 'YYYY-MM' key for the current calendar month (local time). */
+/** 'YYYY-MM' key for current calendar month (local time). */
 export function monthKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
@@ -83,9 +104,15 @@ export function planIdFor(sub) {
   return 'free'
 }
 
-/** True when the doc grants an active paid plan (Pro or School). */
+/** True when the doc grants an active paid plan (Pro, School, Institutional). */
 export function isPaidSub(sub) {
   return planIdFor(sub) !== 'free'
+}
+
+/** Check if subscription is expired (renewsAt in past). */
+export function isExpired(sub) {
+  if (!sub?.renewsAt?.toDate) return false
+  return sub.renewsAt.toDate() < new Date()
 }
 
 /**
@@ -93,7 +120,7 @@ export function isPaidSub(sub) {
  * doc on first request; `profile` supplies denormalised name/email so the
  * admin billing queue is readable without extra joins.
  */
-export async function requestUpgrade(user, profile, planId, { momoNumber, paymentRef }) {
+export async function requestUpgrade(user, profile, planId, { momoNumber, paymentRef, channel = 'mtn', amount = 29 }) {
   const ref = doc(db, 'subscriptions', user.uid)
   const fields = {
     planId,
@@ -101,15 +128,34 @@ export async function requestUpgrade(user, profile, planId, { momoNumber, paymen
     requestedAt: serverTimestamp(),
     momoNumber,
     paymentRef,
+    channel,
+    amount,
     name: profile?.name ?? user.displayName ?? '',
     email: user.email ?? '',
+    schoolId: profile?.schoolId || null,
   }
-  // First interaction with the ledger: create it (rules require exports).
   const existing = await getDoc(ref).catch(() => null)
   if (!existing?.exists()) {
     await setDoc(ref, { ...fields, exports: { month: monthKey(), count: 0 } })
   } else {
     await updateDoc(ref, fields)
+  }
+
+  // Also create a payment_transactions record for audit trail (PRD §8)
+  try {
+    const { createPaymentTransaction } = await import('./paymentTransactions')
+    await createPaymentTransaction({
+      userId: user.uid,
+      schoolId: profile?.schoolId || null,
+      amount,
+      gateway: 'manual_momo',
+      channel,
+      momoNumber,
+      reference: paymentRef,
+      note: `Upgrade request to ${planId}`,
+    })
+  } catch (e) {
+    console.warn('Failed to create payment transaction audit:', e)
   }
 }
 
@@ -121,10 +167,11 @@ export function cancelSubscription(uid) {
 /**
  * Count one export against the member's monthly quota. Paid plans are not
  * metered. Never throws — returns { ok, reason } so callers can toast.
+ * Access grants bypass metering — handled in SubscriptionContext isPro check.
  */
-export async function recordExport(user, sub) {
+export async function recordExport(user, sub, hasGrant = false) {
   if (!user) return { ok: false, reason: 'signed-out' }
-  if (isPaidSub(sub)) return { ok: true, metered: false }
+  if (isPaidSub(sub) || hasGrant) return { ok: true, metered: false }
 
   const mk = monthKey()
   const ref = doc(db, 'subscriptions', user.uid)

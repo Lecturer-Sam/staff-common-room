@@ -1,0 +1,7 @@
+grade,subjectId,strandName,subStrandName,contentStandardCode,indicatorCode,type,objectiveType,text,option_a,option_b,option_c,option_d,correctAnswer,marks,difficulty,bloomLevel,source,status
+B4,mathematics,NUMBER,Counting Representation, B4.1.1.1,B4.1.1.1.1,objective,mcq,What is the place value of 5 in 45 000?,5,50,5000,50000,C,2,medium,understand,BECE 2022 curated,pending
+B4,mathematics,NUMBER,Counting Representation,B4.1.1.1,B4.1.1.1.2,objective,mcq,Which number is 10 000 more than 45 000?,55000,45000,35000,4500,A,2,easy,apply,NaCCA exemplar,pending
+B4,mathematics,NUMBER,Place Value,B4.1.1.2,B4.1.1.2.1,essay,short,Explain how you would model 23 456 using multi-base materials.,,,,,,5,medium,understand,curated,pending
+B4,science,LIFE AND LIVING THINGS,Plants,B4.2.1.1,B4.2.1.1.1,objective,mcq,Which part of the plant makes food?,Root,Stem,Leaf,Flower,C,1,easy,remember,curated,pending
+B4,science,LIFE AND LIVING THINGS,Plants,B4.2.1.1,B4.2.1.1.2,essay,structured,Describe the process of photosynthesis and state two factors that affect it.,,,,,,6,hard,analyze,BECE 2023,pending
+B5,english,ORAL LANGUAGE,Listening Comprehension,B5.1.1.1,B5.1.1.1.1,objective,true_false,The speaker said the meeting will be on Monday.,,,,,True,1,easy,understand,curated,pending
