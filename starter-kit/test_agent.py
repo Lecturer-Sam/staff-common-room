@@ -78,5 +78,26 @@ class TestSkills(unittest.TestCase):
             self.assertEqual(A.detect_mode("hello", ws), "beacon")
 
 
+class FakeFailingClient:
+    """Simulates Ollama timing out — the loop must survive it."""
+
+    def is_available(self):
+        return True
+
+    def chat(self, messages):
+        raise RuntimeError("simulated ReadTimeout")
+
+
+class TestRobustness(unittest.TestCase):
+    def test_chat_failure_does_not_crash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            history = [{"role": "system", "content": "x"}]
+            out = A.handle_turn("hi", FakeFailingClient(), "general",
+                                True, False, Path(tmp), history)
+            self.assertIn("failed", out.lower())
+            # history must stay clean (no error stored as assistant reply)
+            self.assertEqual(history[-1]["role"], "user")
+
+
 if __name__ == "__main__":
     unittest.main()

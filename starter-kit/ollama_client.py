@@ -3,6 +3,15 @@
 The sandbox / CI machines running this prototype usually have no Ollama
 daemon, so every network call must fail soft and let the agent loop
 continue in --mock mode.
+
+Notes on the defaults:
+- timeout=600: a big skill (beacon.md is ~8k tokens) can take minutes on
+  a small CPU-only machine on the first call. Never fail fast here.
+- num_ctx=12288: Ollama's default context (4096) would SILENTLY TRUNCATE
+  the beacon skill. 12288 fits the skill + working history. Raise it if
+  answers ignore skill rules (needs RAM); lower it on OOM.
+- keep_alive=30m: keeps the model hot between turns so only the first
+  call pays the load cost.
 """
 
 from __future__ import annotations
@@ -18,10 +27,16 @@ except ImportError:  # pragma: no cover - requirements not installed
 class OllamaClient:
     def __init__(self, base_url: str = "http://localhost:11434",
                  model: str = "qwen2.5-coder:14b",
-                 timeout: int = 120):
+                 timeout: int = 600,
+                 num_ctx: int = 12288,
+                 temperature: float = 0.3,
+                 keep_alive: str = "30m"):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
+        self.num_ctx = num_ctx
+        self.temperature = temperature
+        self.keep_alive = keep_alive
 
     def is_available(self) -> bool:
         if requests is None:
@@ -35,11 +50,13 @@ class OllamaClient:
     def chat(self, messages: list[dict], model: str | None = None) -> str:
         """Call /api/chat (non-streaming) and return the assistant text."""
         if requests is None:
-            raise RuntimeError("requests is not installed (pip install -r agent/requirements.txt)")
+            raise RuntimeError("requests is not installed (pip install -r requirements.txt)")
         payload = {
             "model": model or self.model,
             "messages": messages,
             "stream": False,
+            "keep_alive": self.keep_alive,
+            "options": {"num_ctx": self.num_ctx, "temperature": self.temperature},
         }
         r = requests.post(f"{self.base_url}/api/chat", json=payload, timeout=self.timeout)
         r.raise_for_status()

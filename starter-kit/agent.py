@@ -145,7 +145,17 @@ def handle_turn(query: str, client: OllamaClient, mode: str,
                 "Start Ollama for live multi-step runs.")
             history.append({"role": "assistant", "content": reply})
             return reply
-        reply = client.chat(history)
+        print("🧠 thinking… (first beacon call can take minutes on a small machine)")
+        try:
+            reply = client.chat(history)
+        except Exception as e:
+            # Never crash the loop on an LLM failure — report and stay alive.
+            return (
+                f"Ollama request failed ({type(e).__name__}: {e}).\n"
+                "The model may still be chewing through a big skill — wait a bit "
+                "and ask again. Tips: pre-warm with `ollama run <model> hi`, "
+                "or restart the agent with a bigger --timeout (e.g. --timeout 900)."
+            )
         history.append({"role": "assistant", "content": reply})
         action = parse_action(reply)
         if action is None:
@@ -181,6 +191,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Personal editor agent (standalone)")
     ap.add_argument("--model", default="qwen2.5-coder:14b")
     ap.add_argument("--ollama-url", default="http://localhost:11434")
+    ap.add_argument("--timeout", type=int, default=600,
+                    help="seconds to wait for Ollama per call (default: 600)")
+    ap.add_argument("--num-ctx", type=int, default=12288,
+                    help="Ollama context window; must exceed the skill size (default: 12288)")
     ap.add_argument("--mode", choices=["auto", "beacon", "general"], default="auto")
     ap.add_argument("--yes", action="store_true", help="auto-approve actions")
     ap.add_argument("--mock", action="store_true", help="force mock brain (no Ollama)")
@@ -194,7 +208,8 @@ def main() -> int:
         print(f"error: workspace does not exist: {workspace}", file=sys.stderr)
         return 1
 
-    client = OllamaClient(base_url=args.ollama_url, model=args.model)
+    client = OllamaClient(base_url=args.ollama_url, model=args.model,
+                         timeout=args.timeout, num_ctx=args.num_ctx)
     mode = args.mode
     auto_approve = args.yes
 
