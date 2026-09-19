@@ -84,12 +84,19 @@ Copy **all files from this starter kit** into that folder, so it looks like:
 my-editor-agent/
 ├── agent.py  executor.py  file_ops.py  ollama_client.py
 ├── requirements.txt  test_agent.py  README.md  SETUP_GUIDE.md
-└── skills/
-    ├── general.md
-    └── beacon.md
+├── VSCODE_EXTENSION_PLAN.md          (Milestone 2 spec)
+├── skills/
+│   ├── general.md
+│   ├── beacon.md
+│   └── beacon-full.md                (big reference, read on demand)
+└── vscode-extension/                 (only needed for Step 9)
+    ├── package.json  tsconfig.json  README.md
+    ├── media/icon.svg
+    └── src/  extension.ts  chatPanel.ts  agentSession.ts  diffProvider.ts
 ```
 
-✅ Check: `skills/beacon.md` and `skills/general.md` both exist.
+✅ Check: `skills/beacon.md` and `skills/general.md` both exist (`dir skills`
+should list **three** files).
 
 > Why a separate folder? Two reasons: (1) the agent jails every file
 > write to its workspace — nesting it inside another project blurs what it
@@ -258,11 +265,62 @@ Rules of the road:
 
 ---
 
+## Step 9 — Milestone 2: the VS Code extension (15 min, optional)
+
+Same brain, nicer home. The extension is a **thin frontend**: it spawns
+`python agent.py --json` and talks NDJSON over stdin/stdout, so the skills,
+the allowlist and the workspace jail all stay in Python.
+
+**You need Node.js 20+ (only to build the .vsix once):** check with
+`node --version`. If missing, install the LTS from <https://nodejs.org>.
+
+1. Put the `vscode-extension` folder next to `agent.py` (it ships inside this
+   kit already).
+2. Build the package:
+
+   ```powershell
+   cd C:\Users\KING\dev-area\my-editor-agent\vscode-extension
+   npm install
+   npm run package        # writes beacon-agent-0.1.0.vsix (~20 KB)
+   ```
+
+   `npm install` may print deprecation warnings — normal. It downloads
+   TypeScript and `vsce` only; the extension itself has zero runtime deps.
+3. Install it in VS Code:
+   - VS Code ▸ Extensions ▸ `…` (top-right) ▸ **Install from VSIX…** ▸ pick
+     `beacon-agent-0.1.0.vsix`, **or** run
+     `code --install-extension beacon-agent-0.1.0.vsix`
+4. **Reload the window**, then open your project: **File ▸ Open Folder…** →
+   `C:\Users\KING\dev-area\my-editor-agent` (a folder that contains `agent.py`).
+   The **Beacon Agent** icon appears in the Activity Bar.
+5. If `agent.py` is somewhere else, set **Settings ▸ Extensions ▸ Beacon Agent
+   ▸ Agent Path** to that folder, and check **Python Path** is `python`.
+6. **First test, no Ollama needed:** command palette → `Beacon: Run Offline UI
+   Demo (no Ollama)`. A card proposes `agent_demo.py`, the diff opens, click
+   **Deny** (nothing is written), run it again and click **Approve** → the file
+   opens in the editor. That proves the whole panel ↔ Python wiring.
+7. **Live test:** ask `add a test for greet()` → diff appears → Approve →
+   the edit lands. Then ask a Beacon question (`how many indicators?`) — the
+   answer must name the layer, never a single "total" (G9).
+
+Commands (Ctrl+Shift+P → “Beacon”): *Ask About Selection* (also **Ctrl+Alt+A**
+with code selected), *Ask a Question…*, *New Chat*, *Choose Mode*
+(auto / beacon / general), *Toggle Auto-Approve*, *Show Agent Log*.
+
+Safety defaults: every write/edit waits for your click; **shell commands always
+ask**, even with auto-approve on; nothing outside the opened folder is
+touchable. If the panel says `[mock brain …]`, Ollama is unreachable —
+`ollama serve` and check the model name in settings.
+
+Full extension docs: `vscode-extension/README.md`.
+
+---
+
 ## What comes AFTER this guide (not now)
 
 | Next milestone | What it adds |
 |---|---|
-| VS Code extension | Chat panel + diff preview + approve buttons inside the editor, calling `agent.py --once` |
+| Persistent agent server (2b) | Keep the Python process alive across restarts instead of spawn-per-chat — only if talking to it feels slow |
 | RAG over curriculum JSONs | A `search` action so Beacon mode can cite the 44 NaCCA JSONs (Approach 1 in `TRAINING A SKILL.md`) |
 | Fine-tune (QLoRA) | Only if the model keeps violating skill rules despite them being in the prompt |
 
@@ -282,4 +340,11 @@ Rules of the road:
 | Agent hunts data files instead of answering from the skill | Fixed in the skills (rule: answer knowledge questions directly, stop after two failed tries). Update `skills/beacon.md` + `skills/general.md` if yours predate this fix |
 | Agent proposes `cat`/`ls` on Windows, or `dir` with `/` slashes | Fixed: the harness now injects OS facts into every prompt. Update `agent.py` if yours predates this fix |
 | `escapes the workspace` | You asked for a path outside `--cwd` — move the file or change `--cwd` |
+| Extension: “Could not find agent.py” | **Settings ▸ Beacon Agent ▸ Agent Path** → the folder that holds `agent.py` (or open that folder as your workspace) |
+| Extension: “Could not start the agent” | Wrong **Python Path** — try `py` instead of `python`, or give the full path to `python.exe` |
+| Extension: `npm install` fails | Node.js 20+ needed; run `node --version`. On Windows use the Node LTS installer and reopen the terminal |
+| Extension: `npm run package` → “vsce: command not found” | Run `npm install` first (it installs `vsce` locally), then `npm run package` from the `vscode-extension` folder |
+| Extension: panel silent after Send | Command palette → `Beacon: Show Agent Log` shows the raw Python child output; usually it is the Python path or a missing `agent.py` |
+| Extension: no diff window appears | **Settings ▸ Beacon Agent ▸ Auto Open Diff** must be on (default), or click **Show diff** on the action card |
+| Extension: clicks do nothing / stale kit | The extension calls **your** `agent.py`; if it is older than this kit it lacks `--json`. Re-download `agent.py` (and `test_agent.py`) |
 | `python test_agent.py` fails | Re-check Step 3: venv activated? `pip install -r requirements.txt` run? |

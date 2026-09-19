@@ -1,0 +1,261 @@
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import * as vscode from 'vscode';
+
+/** One NDJSON line from agent.py --json. */
+export interface AgentEvent {
+  type: string;
+  [key: string]: unknown;
+}
+
+export function str(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+export function num(value: unknown, fallback = 0): number {
+  return typeof value === 'number' ? value : fallback;
+}
+
+function expandHome(p: string): string {
+  if (p === '~') {
+    return os.homedir();
+  }
+  if (p.startsWith('~/') || p.startsWith('~\\')) {
+    return path.join(os.homedir(), p.slice(2));
+  }
+  return p;
+}
+
+/**
+ * Owns one `python agent.py --json` child process per workspace.
+ *
+ * The Python side keeps conversation history, so the process is started on
+ * the first message and reused for every follow-up in the same chat. It is
+ * killed only when a setting that is read at startup changes (model, mode,
+ * auto-approve…) or when the user clicks "New chat" after a hard reset.
+ */
+export class AgentSession implements vscode.Disposable {
+  private proc?: ChildProcessWithoutNullStreams;
+  private stdoutBuf = '';
+  private starting = false;
+  private demo = false;
+  private readonly output: vscode.OutputChannel;
+
+  constructor(
+    private readonly workspace: string,
+    private readonly onEvent: (event: AgentEvent) => void,
+    private readonly onExit: (code: number | null) => void,
+  ) {
+    this.output = vscode.window.createOutputChannel('Beacon Agent');
+  }
+
+  private get config(): vscode.WorkspaceConfiguration {
+    return vscode.workspace.getConfiguration('beaconAgent');
+  }
+
+  get isRunning(): boolean {
+    return this.proc !== undefined;
+  }
+
+  /** Locate agent.py: explicit setting, workspace root, or workspace/starter-kit. */
+  resolveAgentPy(): string | undefined {
+    const configured = str(this.config.get('agentPath')).trim();
+    const candidates: string[] = [];
+    if (configured) {
+      const p = expandHome(configured);
+      candidates.push(fs.existsSync(p) && fs.statSync(p).isDirectory() ? path.join(p, 'agent.py') : p);
+    }
+    candidates.push(path.join(this.workspace, 'agent.py'));
+    candidates.push(path.join(this.workspace, 'starter-kit', 'agent.py'));
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    return undefined;
+  }
+
+  /** Start the child if needed. Returns false (and reports why) on failure. */
+  start(): boolean {
+    if (this.proc) {
+      return true;
+    }
+    if (this.starting) {
+      return true;
+    }
+    if (!this.workspace) {
+      this.onEvent({
+        type: 'error',
+        message: 'Open a folder first (File ▸ Open Folder…). The agent works inside one project at a time.',
+      });
+      return false;
+    }
+    const agentPy = this.resolveAgentPy();
+    if (!agentPy) {
+      this.onEvent({
+        type: 'error',
+        message:
+          'Could not find agent.py. Set "Beacon Agent › Agent Path" to the starter-kit folder, ' +
+          'or open that folder in VS Code.',
+      });
+      return false;
+    }
+
+    const python = str(this.config.get('pythonPath'), 'python').trim() || 'python';
+    const args = [
+      agentPy,
+      '--json',
+      '--cwd', this.workspace,
+      '--model', str(this.config.get('model'), 'qwen2.5-coder:7b'),
+      '--mode', str(this.config.get('mode'), 'auto'),
+      '--ollama-url', str(this.config.get('ollamaUrl'), 'http://localhost:11434'),
+      '--timeout', String(num(this.config.get('timeout'), 600)),
+      '--max-steps', String(num(this.config.get('maxSteps'), 6)),
+    ];
+    if (this.config.get<boolean>('autoApprove', false)) {
+      args.push('--yes');
+    }
+    if (this.demo) {
+      args.push('--demo');
+    }
+
+    this.output.appendLine(`[spawn] ${python} ${args.join(' ')}`);
+    this.starting = true;
+    let child: ChildProcessWithoutNullStreams;
+    try {
+      child = spawn(python, args, {
+        cwd: path.dirname(agentPy),
+        env: { ...process.env, PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8' },
+        windowsHide: true,
+      });
+    } catch (err) {
+      this.starting = false;
+      this.onEvent({ type: 'error', message: `Failed to launch ${python}: ${String(err)}` });
+      return false;
+    }
+
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk: string) => this.onStdout(chunk));
+    child.stderr.on('data', (chunk: string) => this.output.append(chunk));
+    child.on('error', (err: Error) => {
+      this.starting = false;
+      this.proc = undefined;
+      this.onEvent({
+        type: 'error',
+        message:
+          `Could not start the agent (${err.message}). Is Python installed and is ` +
+          `"Beacon Agent › Python Path" (now "${python}") correct?`,
+      });
+      this.onExit(null);
+    });
+    child.on('exit', (code: number | null) => {
+      if (this.proc === child) {
+        this.proc = undefined;
+      }
+      this.starting = false;
+      this.stdoutBuf = '';
+      this.output.appendLine(`[exit] code=${code}`);
+      this.onExit(code);
+    });
+    child.stdin.on('error', () => {
+      /* the child went away between write and flush — 'exit' reports it */
+    });
+
+    this.proc = child;
+    this.starting = false;
+    return true;
+  }
+
+  private onStdout(chunk: string): void {
+    this.stdoutBuf += chunk;
+    let newline = this.stdoutBuf.indexOf('\n');
+    while (newline >= 0) {
+      const line = this.stdoutBuf.slice(0, newline).trim();
+      this.stdoutBuf = this.stdoutBuf.slice(newline + 1);
+      newline = this.stdoutBuf.indexOf('\n');
+      if (!line) {
+        continue;
+      }
+      let event: AgentEvent;
+      try {
+        event = JSON.parse(line) as AgentEvent;
+      } catch {
+        this.output.appendLine(`[non-json stdout] ${line}`);
+        continue;
+      }
+      if (event && typeof event.type === 'string') {
+        this.onEvent(event);
+      }
+    }
+  }
+
+  private send(payload: Record<string, unknown>): void {
+    if (!this.proc) {
+      return;
+    }
+    this.proc.stdin.write(JSON.stringify(payload) + '\n');
+  }
+
+  /** Send a user message; starts the child on first use. */
+  ask(task: string, keepDemo = false): boolean {
+    if (this.demo && !keepDemo) {
+      // The offline demo lasts exactly one run: a normal question gets the real model.
+      this.restart();
+      this.demo = false;
+    }
+    if (!this.start()) {
+      return false;
+    }
+    this.send({ task });
+    return true;
+  }
+
+  /** Start a throwaway session whose brain is the scripted demo (no Ollama). */
+  startWithDemo(): boolean {
+    this.restart();
+    this.demo = true;
+    return this.start();
+  }
+
+  approve(): void {
+    this.send({ decision: 'approve' });
+  }
+
+  deny(): void {
+    this.send({ decision: 'deny' });
+  }
+
+  cancel(): void {
+    this.send({ type: 'cancel' });
+  }
+
+  resetHistory(): void {
+    this.send({ type: 'reset' });
+  }
+
+  setMode(mode: string): void {
+    this.send({ type: 'set_mode', mode });
+  }
+
+  /** Kill the child; the next ask() starts a fresh one with current settings. */
+  restart(): void {
+    const proc = this.proc;
+    this.proc = undefined;
+    this.stdoutBuf = '';
+    if (proc) {
+      proc.kill();
+    }
+  }
+
+  showOutput(): void {
+    this.output.show(true);
+  }
+
+  dispose(): void {
+    this.restart();
+    this.output.dispose();
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "name": "beacon-agent",
+  "displayName": "Beacon Agent",
+  "description": "Chat with your local Ollama coding agent (general + strict Beacon modes) inside VS Code. Thin frontend over agent.py.",
+  "version": "0.1.0",
+  "publisher": "personal",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Machine Learning",
+    "Other"
+  ],
+  "keywords": [
+    "ollama",
+    "agent",
+    "local llm",
+    "beacon"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onView:beaconAgent.chat"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "beaconAgentContainer",
+          "title": "Beacon Agent",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "beaconAgentContainer": [
+        {
+          "type": "webview",
+          "id": "beaconAgent.chat",
+          "name": "Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "beaconAgent.chat",
+        "title": "Beacon: Focus Chat Panel"
+      },
+      {
+        "command": "beaconAgent.ask",
+        "title": "Beacon: Ask a Question…",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "beaconAgent.askSelection",
+        "title": "Beacon: Ask About Selection",
+        "icon": "$(selection)"
+      },
+      {
+        "command": "beaconAgent.newChat",
+        "title": "Beacon: New Chat",
+        "icon": "$(add)"
+      },
+      {
+        "command": "beaconAgent.chooseMode",
+        "title": "Beacon: Choose Mode (auto / beacon / general)",
+        "icon": "$(symbol-color)"
+      },
+      {
+        "command": "beaconAgent.toggleAutoApprove",
+        "title": "Beacon: Toggle Auto-Approve File Changes",
+        "icon": "$(check)"
+      },
+      {
+        "command": "beaconAgent.runDemo",
+        "title": "Beacon: Run Offline UI Demo (no Ollama)",
+        "icon": "$(beaker)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "beaconAgent.newChat",
+          "when": "view == beaconAgent.chat",
+          "group": "navigation@1"
+        },
+        {
+          "command": "beaconAgent.chooseMode",
+          "when": "view == beaconAgent.chat",
+          "group": "navigation@2"
+        },
+        {
+          "command": "beaconAgent.toggleAutoApprove",
+          "when": "view == beaconAgent.chat",
+          "group": "navigation@3"
+        },
+        {
+          "command": "beaconAgent.runDemo",
+          "when": "view == beaconAgent.chat",
+          "group": "9_config"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "beaconAgent.askSelection",
+          "when": "editorHasSelection",
+          "group": "beacon@1"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "beaconAgent.askSelection",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "Beacon Agent",
+      "properties": {
+        "beaconAgent.agentPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to `agent.py` **or** to the starter-kit folder that contains it. Leave empty to auto-detect `agent.py` in the workspace root or in `starter-kit/`."
+        },
+        "beaconAgent.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "markdownDescription": "Python executable used to launch `agent.py` (e.g. `python`, `py`, or an absolute path). Windows usually has `python` on PATH."
+        },
+        "beaconAgent.model": {
+          "type": "string",
+          "default": "qwen2.5-coder:7b",
+          "description": "Ollama model name (must match `ollama list`)."
+        },
+        "beaconAgent.mode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "beacon",
+            "general"
+          ],
+          "default": "auto",
+          "description": "auto = pick the skill from the task; beacon = strict Ground Rules; general = plain coding assistant."
+        },
+        "beaconAgent.ollamaUrl": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Where Ollama listens."
+        },
+        "beaconAgent.timeout": {
+          "type": "number",
+          "default": 600,
+          "description": "Seconds to wait for one Ollama reply (a cold model on CPU can take minutes)."
+        },
+        "beaconAgent.maxSteps": {
+          "type": "number",
+          "default": 6,
+          "description": "Maximum act → observe cycles per message."
+        },
+        "beaconAgent.autoApprove": {
+          "type": "boolean",
+          "default": false,
+          "description": "Apply file writes/edits without asking. Shell commands still always ask."
+        },
+        "beaconAgent.autoOpenDiff": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open the diff preview automatically when the agent proposes a file change."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --allow-missing-repository --skip-license"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^4.0.0",
+    "typescript": "^5.4.5"
+  }
+}
