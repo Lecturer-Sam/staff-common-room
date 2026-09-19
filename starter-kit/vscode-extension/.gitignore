@@ -1,4 +1,7 @@
 node_modules/
 out/
 *.vsix
+# The one exception: a prebuilt .vsix is shipped so the extension can be
+# installed without Node.js. Rebuild it after changing src/ (npm run package).
+!beacon-agent-0.1.0.vsix
 package-lock.json

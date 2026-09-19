@@ -20,23 +20,31 @@ VS Code panel  ──spawn──▶  python agent.py --json  ──▶  Ollama (
 | Ollama with your model | `ollama list` shows `qwen2.5-coder:7b` |
 | Node.js 20+ (only to *build* the extension) | `node --version` |
 
-## 2. Build the `.vsix` (one time, ~30 s)
+## 2. Get the `.vsix`, then install it
+
+### Option A — use the prebuilt one (no Node.js needed)
+
+This folder ships `beacon-agent-0.1.0.vsix`, already built from the sources
+here (≈20 KB). Install it:
+
+* VS Code ▸ Extensions ▸ `…` menu (top-right) ▸ **Install from VSIX…** ▸ pick
+  `beacon-agent-0.1.0.vsix`, **or**
+* `code --install-extension beacon-agent-0.1.0.vsix`
+
+### Option B — build it yourself (Node.js 20+, ~30 s)
 
 Open a terminal **in this `vscode-extension` folder**:
 
 ```
 npm install
-npm run compile
-npm run package
+npm run package        # compiles src/ and writes beacon-agent-0.1.0.vsix
 ```
 
-`npm run package` writes `beacon-agent-0.1.0.vsix` in this folder.
-Then install it:
+Then install the file as above. Use this option after editing anything in
+`src/` — the shipped `.vsix` is only a convenience snapshot.
 
-* VS Code ▸ Extensions ▸ `…` menu (top-right) ▸ **Install from VSIX…** ▸ pick the file, **or**
-* `code --install-extension beacon-agent-0.1.0.vsix`
-
-Reload the window. A **Beacon Agent** icon appears in the Activity Bar.
+Either way: **reload the window**. A **Beacon Agent** icon appears in the
+Activity Bar.
 
 ## 3. Point it at your project
 

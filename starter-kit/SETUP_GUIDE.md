@@ -271,17 +271,16 @@ Same brain, nicer home. The extension is a **thin frontend**: it spawns
 `python agent.py --json` and talks NDJSON over stdin/stdout, so the skills,
 the allowlist and the workspace jail all stay in Python.
 
-**You need Node.js 20+ (only to build the .vsix once):** check with
-`node --version`. If missing, install the LTS from <https://nodejs.org>.
-
 1. Put the `vscode-extension` folder next to `agent.py` (it ships inside this
    kit already).
-2. Build the package:
+2. Get the package — **either** use the prebuilt one in that folder
+   (`beacon-agent-0.1.0.vsix`, no Node.js needed), **or** build it yourself
+   if you have Node.js 20+ (`node --version`):
 
    ```powershell
    cd C:\Users\KING\dev-area\my-editor-agent\vscode-extension
    npm install
-   npm run package        # writes beacon-agent-0.1.0.vsix (~20 KB)
+   npm run package        # compiles src/ and writes beacon-agent-0.1.0.vsix
    ```
 
    `npm install` may print deprecation warnings — normal. It downloads

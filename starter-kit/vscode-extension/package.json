@@ -175,6 +175,7 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
     "package": "vsce package --allow-missing-repository --skip-license"
   },
   "devDependencies": {
