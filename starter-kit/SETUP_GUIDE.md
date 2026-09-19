@@ -29,8 +29,10 @@ You are assembling 4 things that must find each other:
 - **Folder** — this project. It must sit in its own directory (NOT inside
   `staff-common-room`), because the agent jails all file edits to a workspace.
 - **SKILLs** — markdown rulebooks in `skills/`. `general.md` for everyday
-  coding, `beacon.md` (copied from `staff-common-room/data/side/SKILL.md`)
-  for strict curriculum work.
+  coding, `beacon.md` for strict curriculum work. Beacon is split in two:
+  a slim always-loaded skill (~4 KB) plus the full 33 KB reference in
+  `skills/beacon-full.md`, which the agent reads section-by-section on
+  demand — this keeps small local models fast.
 - **Brain** — Ollama running locally with a coder model.
 - **Workspace** — whichever project folder you point `--cwd` at.
 
@@ -275,7 +277,7 @@ Rules of the road:
 | Model answers but never acts | It may be replying in chat instead of JSON — nudge it: “reply with exactly one JSON action” |
 | `BLOCKED by allowlist` | The command isn't in `executor.py`'s list — add the prefix deliberately if you trust it |
 | On Windows, `ls`/`cat` fail | Use `dir` / `type` instead — both are allowlisted for Windows |
-| First `/beacon` question is very slow or times out | Normal on a small machine: `beacon.md` is ~8k tokens. Pre-warm first (`ollama run <model> hi`), then ask and wait — follow-ups are faster. Raise `--timeout 900` if needed |
+| First `/beacon` question is slow | Much faster since the slim skill (~1k tokens; full detail lives in `beacon-full.md` on demand). Still slow? Pre-warm (`ollama run <model> hi`), then ask and wait — follow-ups reuse the warm cache. Raise `--timeout 900` if needed |
 | Beacon answers ignore skill rules (bare counts, npm, …) | Context may be truncated — raise `--num-ctx` (needs RAM). Or the 7b is too small for strict mode: retry the question, or shorten the skill |
 | `escapes the workspace` | You asked for a path outside `--cwd` — move the file or change `--cwd` |
 | `python test_agent.py` fails | Re-check Step 3: venv activated? `pip install -r requirements.txt` run? |

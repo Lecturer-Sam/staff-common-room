@@ -19,7 +19,8 @@ my-editor-agent/
 ├── file_ops.py        workspace-jailed read/write/edit
 ├── skills/
 │   ├── general.md     general coding skill (default mode)
-│   └── beacon.md      copy of Beacon SKILL.md (strict mode for curriculum work)
+│   ├── beacon.md      slim Beacon skill, always loaded in strict mode (~4 KB)
+│   └── beacon-full.md full Beacon reference (33 KB), read on demand
 ├── test_agent.py      offline tests — no Ollama needed
 ├── requirements.txt   Python deps (just `requests`)
 └── SETUP_GUIDE.md     ordered setup steps for your machine
