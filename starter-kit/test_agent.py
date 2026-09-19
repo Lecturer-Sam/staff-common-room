@@ -99,5 +99,43 @@ class TestRobustness(unittest.TestCase):
             self.assertEqual(history[-1]["role"], "user")
 
 
+class FakeActingClient:
+    """Simulates a model that always acts and never answers."""
+
+    def is_available(self):
+        return True
+
+    def chat(self, messages):
+        return '{"action": "read", "path": "nope.txt"}'
+
+
+class TestMaxSteps(unittest.TestCase):
+    def test_stop_message_not_raw_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            history = [{"role": "system", "content": "x"}]
+            out = A.handle_turn("hi", FakeActingClient(), "general",
+                                True, False, Path(tmp), history, max_steps=2)
+            self.assertIn("stopped after 2 steps", out.lower())
+
+
+class TestEnvironmentPrompt(unittest.TestCase):
+    def test_env_block_present(self):
+        import platform
+        prompt = A.build_system_prompt("skill-text", "general")
+        self.assertIn("## Environment", prompt)
+        self.assertIn(platform.system(), prompt)
+
+    def test_windows_block_content(self):
+        import platform
+        real = platform.system
+        platform.system = lambda: "Windows"
+        try:
+            block = A.environment_block()
+        finally:
+            platform.system = real
+        self.assertIn("BACKSLASHES", block)
+        self.assertIn("DO NOT EXIST", block)
+
+
 if __name__ == "__main__":
     unittest.main()

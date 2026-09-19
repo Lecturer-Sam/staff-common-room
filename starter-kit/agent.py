@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import platform
 import re
 import sys
 from pathlib import Path
@@ -54,6 +55,24 @@ RESPONSE_FORMAT = """
 """.strip()
 
 
+def environment_block() -> str:
+    """OS facts the model must not guess (small models default to Unix)."""
+    if platform.system() == "Windows":
+        return (
+            "## Environment (facts — do not guess otherwise)\n"
+            "- OS: Windows. Shell: cmd/PowerShell.\n"
+            "- List files with `dir`, print files with `type`, locate programs with `where`.\n"
+            "- `cat`, `ls`, `grep`, `find` DO NOT EXIST here — never propose them.\n"
+            "- Paths use BACKSLASHES: `dir data\\curriculum`. Forward slashes break `dir`/`type`."
+        )
+    return (
+        "## Environment (facts — do not guess otherwise)\n"
+        f"- OS: {platform.system()}. Shell: sh/bash.\n"
+        "- List files with `ls`, print files with `cat`, search with `grep`.\n"
+        "- Paths use forward slashes."
+    )
+
+
 def load_skill(mode: str) -> str:
     path = BEACON_SKILL if mode == "beacon" else GENERAL_SKILL
     if not path.is_file():
@@ -76,7 +95,7 @@ def build_system_prompt(skill: str, mode: str) -> str:
         if mode == "beacon"
         else "You are a general coding assistant."
     )
-    return f"{banner}\n\n{skill}\n\n{RESPONSE_FORMAT}"
+    return f"{banner}\n\n{skill}\n\n{environment_block()}\n\n{RESPONSE_FORMAT}"
 
 
 def parse_action(reply: str) -> dict | None:
@@ -145,7 +164,7 @@ def handle_turn(query: str, client: OllamaClient, mode: str,
                 "Start Ollama for live multi-step runs.")
             history.append({"role": "assistant", "content": reply})
             return reply
-        print("🧠 thinking… (first beacon call can take minutes on a small machine)")
+        print("🧠 thinking…")
         try:
             reply = client.chat(history)
         except Exception as e:
@@ -184,7 +203,10 @@ def handle_turn(query: str, client: OllamaClient, mode: str,
         history.append({"role": "user", "content": f"Tool result:\n{result}"})
         query = "Continue with the next step, or summarise if done."
         final_text = result
-    return final_text or "Stopped after max steps — say 'continue' to go on."
+    last = final_text or "(no tool ran)"
+    return (f"I stopped after {max_steps} steps without reaching a final answer — "
+            "say 'continue' to go on, or rephrase the task.\n"
+            f"Last tool result:\n{last}")
 
 
 def main() -> int:

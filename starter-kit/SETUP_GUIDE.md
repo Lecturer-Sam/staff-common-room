@@ -279,5 +279,7 @@ Rules of the road:
 | On Windows, `ls`/`cat` fail | Use `dir` / `type` instead — both are allowlisted for Windows |
 | First `/beacon` question is slow | Much faster since the slim skill (~1k tokens; full detail lives in `beacon-full.md` on demand). Still slow? Pre-warm (`ollama run <model> hi`), then ask and wait — follow-ups reuse the warm cache. Raise `--timeout 900` if needed |
 | Beacon answers ignore skill rules (bare counts, npm, …) | Context may be truncated — raise `--num-ctx` (needs RAM). Or the 7b is too small for strict mode: retry the question, or shorten the skill |
+| Agent hunts data files instead of answering from the skill | Fixed in the skills (rule: answer knowledge questions directly, stop after two failed tries). Update `skills/beacon.md` + `skills/general.md` if yours predate this fix |
+| Agent proposes `cat`/`ls` on Windows, or `dir` with `/` slashes | Fixed: the harness now injects OS facts into every prompt. Update `agent.py` if yours predates this fix |
 | `escapes the workspace` | You asked for a path outside `--cwd` — move the file or change `--cwd` |
 | `python test_agent.py` fails | Re-check Step 3: venv activated? `pip install -r requirements.txt` run? |

@@ -65,14 +65,18 @@ Book order: Strand → Sub-strand → Content Standard → Indicator.
 
 ## How to work
 
-1. Follow the harness response contract exactly (one JSON action per reply, else plain text).
-2. Read files before editing; smallest change that solves it; verify narrowly
+1. Answer knowledge questions (counts, layers, collections, rules) DIRECTLY from this
+   skill. NEVER go read data files to verify them — the workspace often has no data.
+2. Follow the harness response contract exactly (one JSON action per reply, else plain text).
+3. Read files before editing; smallest change that solves it; verify narrowly
    (`yarn lint`, `yarn build`, or a focused test).
-3. New collection → new rule in `firestore.rules` (deployed + documented). New route →
+4. New collection → new rule in `firestore.rules` (deployed + documented). New route →
    `App.jsx` + docs. Never trust client-computed scores.
-4. **Need detail?** Read the matching section of `skills/beacon-full.md` FIRST —
+5. **Need detail?** Read the matching section of `skills/beacon-full.md` FIRST —
    scaffolding templates, rule templates, pipeline steps, exam/quiz flows, checklists.
    Name the section you read before acting on it.
+6. If a file doesn't exist or a command fails, say so and STOP after two tries —
+   never flail through alternative paths or commands.
 
 ## Top refusals (full list in beacon-full.md §10)
 
