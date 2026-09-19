@@ -13,16 +13,9 @@ export function activate(context: vscode.ExtensionContext): void {
   const session = new AgentSession(
     workspace,
     (event) => provider.onEvent(event),
-    (code) => {
-      // A crashed child would otherwise leave the panel waiting forever.
-      if (code !== null && code !== 0) {
-        provider.onEvent({
-          type: 'error',
-          message: `The agent process exited (code ${code}). Run "Beacon: Show Agent Log" for the last output, then send again.`,
-        });
-        provider.onEvent({ type: 'done' });
-      }
-    },
+    // AgentSession already reports a non-zero exit itself (it has the stderr
+    // diagnostic); nothing extra to do here yet.
+    () => undefined,
   );
   const provider = new ChatViewProvider(session, diffs);
 

@@ -293,7 +293,9 @@ the allowlist and the workspace jail all stay in Python.
    `C:\Users\KING\dev-area\my-editor-agent` (a folder that contains `agent.py`).
    The **Beacon Agent** icon appears in the Activity Bar.
 5. If `agent.py` is somewhere else, set **Settings ▸ Extensions ▸ Beacon Agent
-   ▸ Agent Path** to that folder, and check **Python Path** is `python`.
+   ▸ Agent Path** to that folder. **Python Path** can stay `python` — the
+   extension auto-detects a `.venv` in the project (that is where Step 3 put
+   `requests`); set it manually only if your Python lives elsewhere.
 6. **First test, no Ollama needed:** command palette → `Beacon: Run Offline UI
    Demo (no Ollama)`. A card proposes `agent_demo.py`, the diff opens, click
    **Deny** (nothing is written), run it again and click **Approve** → the file
@@ -341,6 +343,7 @@ Full extension docs: `vscode-extension/README.md`.
 | `escapes the workspace` | You asked for a path outside `--cwd` — move the file or change `--cwd` |
 | Extension: “Could not find agent.py” | **Settings ▸ Beacon Agent ▸ Agent Path** → the folder that holds `agent.py` (or open that folder as your workspace) |
 | Extension: “Could not start the agent” | Wrong **Python Path** — try `py` instead of `python`, or give the full path to `python.exe` |
+| Extension: “Python could not import a dependency (usually `requests`)” | The interpreter has no `requests`: set **Python Path** to `.venv\Scripts\python.exe`, or `pip install -r requirements.txt` with that interpreter |
 | Extension: `npm install` fails | Node.js 20+ needed; run `node --version`. On Windows use the Node LTS installer and reopen the terminal |
 | Extension: `npm run package` → “vsce: command not found” | Run `npm install` first (it installs `vsce` locally), then `npm run package` from the `vscode-extension` folder |
 | Extension: panel silent after Send | Command palette → `Beacon: Show Agent Log` shows the raw Python child output; usually it is the Python path or a missing `agent.py` |

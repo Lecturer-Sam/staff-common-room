@@ -53,7 +53,9 @@ Activity Bar.
 2. If `agent.py` lives somewhere else, set
    **Settings ▸ Extensions ▸ Beacon Agent ▸ Agent Path** to the folder that
    contains it (e.g. `C:\Users\KING\dev-area\my-editor-agent`).
-3. Check **Beacon Agent ▸ Python Path** is `python` (use `py` if that is your launcher).
+3. **Beacon Agent ▸ Python Path** can stay `python`: a virtualenv inside the
+   project (`.venv\Scripts\python.exe`, where your `requests` normally lives)
+   is detected automatically. Set it explicitly if your setup differs.
 
 The agent can only read/write/run **inside the opened folder** — that rule
 lives in `file_ops.py`, not in the UI.

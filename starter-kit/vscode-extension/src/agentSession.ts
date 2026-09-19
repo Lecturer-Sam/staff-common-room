@@ -39,6 +39,7 @@ function expandHome(p: string): string {
 export class AgentSession implements vscode.Disposable {
   private proc?: ChildProcessWithoutNullStreams;
   private stdoutBuf = '';
+  private stderrTail = '';
   private starting = false;
   private demo = false;
   private readonly output: vscode.OutputChannel;
@@ -77,6 +78,32 @@ export class AgentSession implements vscode.Disposable {
     return undefined;
   }
 
+  /**
+   * Pick the interpreter. An explicit setting always wins; otherwise a local
+   * virtualenv is preferred, because that is where `pip install -r
+   * requirements.txt` put `requests` during setup (plain `python` often lacks it).
+   */
+  resolvePython(agentPy: string): string {
+    const configured = str(this.config.get('pythonPath'), 'python').trim() || 'python';
+    if (configured !== 'python' && configured !== 'py') {
+      return configured;
+    }
+    const win = process.platform === 'win32';
+    const rels = win
+      ? ['.venv/Scripts/python.exe', 'venv/Scripts/python.exe', 'env/Scripts/python.exe']
+      : ['.venv/bin/python3', '.venv/bin/python', 'venv/bin/python3', 'venv/bin/python'];
+    for (const root of [path.dirname(agentPy), this.workspace]) {
+      for (const rel of rels) {
+        const candidate = path.join(root, rel);
+        if (fs.existsSync(candidate)) {
+          this.output.appendLine(`[env] using virtualenv interpreter: ${candidate}`);
+          return candidate;
+        }
+      }
+    }
+    return configured;
+  }
+
   /** Start the child if needed. Returns false (and reports why) on failure. */
   start(): boolean {
     if (this.proc) {
@@ -103,7 +130,7 @@ export class AgentSession implements vscode.Disposable {
       return false;
     }
 
-    const python = str(this.config.get('pythonPath'), 'python').trim() || 'python';
+    const python = this.resolvePython(agentPy);
     const args = [
       agentPy,
       '--json',
@@ -139,7 +166,10 @@ export class AgentSession implements vscode.Disposable {
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
     child.stdout.on('data', (chunk: string) => this.onStdout(chunk));
-    child.stderr.on('data', (chunk: string) => this.output.append(chunk));
+    child.stderr.on('data', (chunk: string) => {
+      this.stderrTail = (this.stderrTail + chunk).slice(-2000);
+      this.output.append(chunk);
+    });
     child.on('error', (err: Error) => {
       this.starting = false;
       this.proc = undefined;
@@ -158,6 +188,25 @@ export class AgentSession implements vscode.Disposable {
       this.starting = false;
       this.stdoutBuf = '';
       this.output.appendLine(`[exit] code=${code}`);
+      if (code !== null && code !== 0) {
+        // Translate the common crashes into something the user can act on.
+        const stderr = this.stderrTail;
+        let message = `The agent process exited (code ${code}). Run "Beacon: Show Agent Log" for the last output.`;
+        if (/ModuleNotFoundError|No module named|ImportError/i.test(stderr)) {
+          message =
+            'Python could not import a dependency (usually `requests`). Point ' +
+            '"Beacon Agent ▸ Python Path" at your virtualenv interpreter ' +
+            '(.venv\\Scripts\\python.exe on Windows) or run `pip install -r requirements.txt` ' +
+            'with the same Python.';
+        } else if (/SyntaxError|IndentationError/i.test(stderr)) {
+          message = 'agent.py failed to load (syntax error). Re-download agent.py from the kit — it must match this extension version.';
+        } else if (/can't open file|No such file or directory.*agent\.py/i.test(stderr)) {
+          message = 'agent.py could not be found at the configured path. Check "Beacon Agent ▸ Agent Path".';
+        }
+        this.stderrTail = '';
+        this.onEvent({ type: 'error', message });
+        this.onEvent({ type: 'done' });
+      }
       this.onExit(code);
     });
     child.stdin.on('error', () => {
