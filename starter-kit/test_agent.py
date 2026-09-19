@@ -137,5 +137,16 @@ class TestEnvironmentPrompt(unittest.TestCase):
         self.assertIn("DO NOT EXIST", block)
 
 
+class TestAnswerFirst(unittest.TestCase):
+    def test_harness_prefers_answering_from_context(self):
+        prompt = A.build_system_prompt("skill-text", "general")
+        self.assertIn("already in the skill", prompt)
+
+    def test_beacon_skill_has_golden_examples(self):
+        skill = A.load_skill("beacon")
+        self.assertIn("Golden examples", skill)
+        self.assertIn("L1: 3,095", skill)
+
+
 if __name__ == "__main__":
     unittest.main()

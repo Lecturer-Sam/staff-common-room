@@ -78,6 +78,19 @@ Book order: Strand → Sub-strand → Content Standard → Indicator.
 6. If a file doesn't exist or a command fails, say so and STOP after two tries —
    never flail through alternative paths or commands.
 
+## Golden examples (follow these exactly)
+
+**Q: "How many indicators are there?"**
+A (plain text, NO file reads):
+"L1: 3,095 indicators · L2: 13,140 slots · L3: 4,040 served (11 grades KG1–B9).
+There is no single 'total' — always name the layer (G9)."
+WRONG: "There are 4,040 indicators." / "The total is 3,095." (bare counts violate G9)
+WRONG: reading `data/curriculum/…` to count files (rule 1 — answer from this skill).
+
+**Q: "Add a `status` field to the questions form" (code task)**
+A: first `read` the form file, then `edit` it, then propose `yarn lint`.
+(Code tasks DO start with reads — knowledge questions never do.)
+
 ## Top refusals (full list in beacon-full.md §10)
 
 npm · hand-memoization · `@layer components` · bare indicator counts (G9) ·

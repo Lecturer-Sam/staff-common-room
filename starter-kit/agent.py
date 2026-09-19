@@ -51,6 +51,8 @@ RESPONSE_FORMAT = """
   {"action": "edit", "path": "relative/path", "old_text": "...", "new_text": "..."}
   {"action": "run", "command": "shell command"}
 - Otherwise reply in plain text.
+- If the answer is already in the skill or conversation above, reply in plain text
+  immediately — do not emit actions to "look it up" or "verify" it.
 - One action per reply. Wait for the result before the next action.
 """.strip()
 
