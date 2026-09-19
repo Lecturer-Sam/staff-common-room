@@ -15,6 +15,8 @@ ALLOWED_PREFIXES = [
     "ls", "cat", "head", "tail", "wc", "find", "grep", "rg", "diff",
     "pwd", "echo", "which", "node --version", "yarn --version",
     "python3 --version", "git status", "git diff", "git log",
+    # Windows equivalents (cmd/PowerShell)
+    "dir", "type", "where",
     # javascript / app
     "yarn dev", "yarn lint", "yarn build", "yarn preview",
     "yarn install", "yarn curriculum",

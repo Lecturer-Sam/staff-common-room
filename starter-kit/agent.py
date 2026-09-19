@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
-"""Personal editor agent — prototype chat → code loop.
+"""Personal editor agent — standalone prototype (chat → code loop).
 
-Choices locked in by the owner:
-  - Target: VS Code extension (this loop becomes the extension backend)
-  - Brain: local Ollama (qwen2.5-coder:14b), mock fallback when unreachable
-  - Scope: general coding + strict Beacon mode (SKILL.md) for this repo
-  - Milestone 1: working prototype loop, no fancy UI yet
+This project is INDEPENDENT of staff-common-room. It only borrows a copy
+of the Beacon skill (skills/beacon.md). Point it at any codebase with --cwd.
 
-Usage:
-    pip install -r agent/requirements.txt
+Usage (from this folder):
+    pip install -r requirements.txt
     ollama serve & ollama pull qwen2.5-coder:14b   # one-time, on your machine
-    python3 agent/agent.py                          # interactive
-    python3 agent/agent.py --once "list the repo root"
-    python3 agent/agent.py --mock --once "what would you do?"
+    python agent.py                                # interactive, edits current dir
+    python agent.py --cwd ~/path/to/some/project  # edit a different project
+    python agent.py --once "list the workspace"    # one-shot (for scripts / VS Code)
+    python agent.py --mock --once "hello"          # no Ollama needed
 
 Inside the loop:
     /beacon | /general   switch skill mode
@@ -31,12 +29,13 @@ import sys
 from pathlib import Path
 
 from executor import is_safe, run_command
-from file_ops import REPO_ROOT, edit_file, read_file, write_file
+from file_ops import edit_file, read_file, resolve_workspace, write_file
 from ollama_client import OllamaClient, mock_reply
 
-AGENT_DIR = Path(__file__).resolve().parent
-BEACON_SKILL = REPO_ROOT / "data" / "side" / "SKILL.md"
-GENERAL_SKILL = AGENT_DIR / "skills" / "general.md"
+PROJECT_DIR = Path(__file__).resolve().parent
+SKILLS_DIR = PROJECT_DIR / "skills"
+BEACON_SKILL = SKILLS_DIR / "beacon.md"
+GENERAL_SKILL = SKILLS_DIR / "general.md"
 
 BEACON_TRIGGERS = (
     "beacon", "nacca", "curriculum", "firestore", "lesson plan",
@@ -62,14 +61,11 @@ def load_skill(mode: str) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
 
 
-def detect_mode(query: str) -> str:
-    """Beacon mode when inside this repo or when the query names it."""
-    q = query.lower()
-    if any(t in q for t in BEACON_TRIGGERS):
+def detect_mode(query: str, workspace: Path) -> str:
+    """Beacon mode when the task names it, or the workspace IS a Beacon repo."""
+    if any(t in query.lower() for t in BEACON_TRIGGERS):
         return "beacon"
-    # This prototype lives inside staff-common-room, so default to beacon
-    # here; the later VS Code extension will default to general elsewhere.
-    if (REPO_ROOT / "data" / "side" / "SKILL.md").exists():
+    if (workspace / "data" / "side" / "SKILL.md").exists():
         return "beacon"
     return "general"
 
@@ -86,10 +82,8 @@ def build_system_prompt(skill: str, mode: str) -> str:
 def parse_action(reply: str) -> dict | None:
     """Extract a single JSON action from an LLM reply, or None for chat."""
     text = reply.strip()
-    # Prefer fenced ```json blocks
     m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     candidate = m.group(1) if m else text
-    # Fall back to first {...} span
     if not m:
         m2 = re.search(r"\{.*\}", text, re.DOTALL)
         if not m2:
@@ -111,23 +105,22 @@ def describe_action(action: dict) -> str:
     if a == "read":
         return f"read: {action.get('path', '')}"
     if a == "write":
-        content = action.get("content", "")
-        return f"write: {action.get('path', '')} ({len(content)} chars)"
+        return f"write: {action.get('path', '')} ({len(action.get('content', ''))} chars)"
     if a == "edit":
         return f"edit: {action.get('path', '')}"
     return json.dumps(action)
 
 
-def execute_action(action: dict, cwd: str) -> str:
+def execute_action(action: dict, workspace: Path) -> str:
     a = action["action"]
     if a == "read":
-        return read_file(action["path"])
+        return read_file(action["path"], workspace)
     if a == "write":
-        return write_file(action["path"], action.get("content", ""))
+        return write_file(action["path"], action.get("content", ""), workspace)
     if a == "edit":
-        return edit_file(action["path"], action["old_text"], action["new_text"])
+        return edit_file(action["path"], action["old_text"], action["new_text"], workspace)
     if a == "run":
-        code, out = run_command(action["command"], cwd=cwd)
+        code, out = run_command(action["command"], cwd=str(workspace))
         return f"[exit {code}]\n{out}"
     raise ValueError(f"unknown action {a!r}")
 
@@ -140,7 +133,7 @@ Just type a task (e.g. "read README.md and summarise the layout")."""
 
 
 def handle_turn(query: str, client: OllamaClient, mode: str,
-                auto_approve: bool, mock: bool, cwd: str,
+                auto_approve: bool, mock: bool, workspace: Path,
                 history: list[dict], max_steps: int = 6) -> str:
     """Run one user query through act → observe cycles. Returns final text."""
     history.append({"role": "user", "content": query})
@@ -174,7 +167,7 @@ def handle_turn(query: str, client: OllamaClient, mode: str,
                 final_text = "Action rejected — tell me what to do instead."
                 continue
         try:
-            result = execute_action(action, cwd)
+            result = execute_action(action, workspace)
         except Exception as e:  # never let a tool crash the loop
             result = f"Tool error: {type(e).__name__}: {e}"
         print(f"✅ result:\n{result[:1500]}")
@@ -185,44 +178,50 @@ def handle_turn(query: str, client: OllamaClient, mode: str,
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Personal editor agent prototype")
+    ap = argparse.ArgumentParser(description="Personal editor agent (standalone)")
     ap.add_argument("--model", default="qwen2.5-coder:14b")
     ap.add_argument("--ollama-url", default="http://localhost:11434")
     ap.add_argument("--mode", choices=["auto", "beacon", "general"], default="auto")
     ap.add_argument("--yes", action="store_true", help="auto-approve actions")
     ap.add_argument("--mock", action="store_true", help="force mock brain (no Ollama)")
     ap.add_argument("--once", default=None, help="run one query then exit")
-    ap.add_argument("--cwd", default=str(REPO_ROOT))
+    ap.add_argument("--cwd", default=".",
+                    help="workspace the agent may read/write/run in (default: current dir)")
     args = ap.parse_args()
+
+    workspace = resolve_workspace(args.cwd)
+    if not workspace.is_dir():
+        print(f"error: workspace does not exist: {workspace}", file=sys.stderr)
+        return 1
 
     client = OllamaClient(base_url=args.ollama_url, model=args.model)
     mode = args.mode
     auto_approve = args.yes
 
     def resolve_mode(query: str) -> str:
-        return detect_mode(query) if mode == "auto" else mode
+        return detect_mode(query, workspace) if mode == "auto" else mode
 
     def fresh_history(active_mode: str) -> list[dict]:
-        return [{"role": "system", "content": build_system_prompt(load_skill(active_mode), active_mode)}]
+        return [{"role": "system",
+                 "content": build_system_prompt(load_skill(active_mode), active_mode)}]
 
     if args.once:
         active = resolve_mode(args.once)
-        print(f"mode={active} model={args.model} mock={args.mock or not client.is_available()}")
+        print(f"mode={active} model={args.model} "
+              f"mock={args.mock or not client.is_available()} workspace={workspace}")
         out = handle_turn(args.once, client, active, auto_approve=True,
-                          mock=args.mock, cwd=args.cwd,
+                          mock=args.mock, workspace=workspace,
                           history=fresh_history(active))
         print(f"\n🤖 Agent:\n{out}")
         return 0
 
-    print("🔶 Personal editor agent — prototype loop")
+    print("🔶 Personal editor agent (standalone)")
     print(f"   brain={'mock' if args.mock else args.model + ' @ ' + args.ollama_url}")
-    print(f"   repo={REPO_ROOT}")
+    print(f"   workspace={workspace}")
     print("   Type /help for commands.\n")
 
-    history: list[dict] = []
-    active_mode = "beacon" if mode == "auto" else mode
-    history = fresh_history(resolve_mode("") if mode == "auto" else active_mode)
     active_mode = resolve_mode("")
+    history = fresh_history(active_mode)
 
     while True:
         try:
@@ -252,13 +251,13 @@ def main() -> int:
             print(f"switched to {active_mode} mode")
             continue
         if mode == "auto":
-            new_mode = detect_mode(query)
+            new_mode = detect_mode(query, workspace)
             if new_mode != active_mode:
                 active_mode = new_mode
                 history = fresh_history(active_mode)
                 print(f"(auto-switched to {active_mode} mode)")
         out = handle_turn(query, client, active_mode, auto_approve,
-                          mock=args.mock, cwd=args.cwd, history=history)
+                          mock=args.mock, workspace=workspace, history=history)
         print(f"\n🤖 Agent: {out}\n")
 
 

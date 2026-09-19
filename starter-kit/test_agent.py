@@ -1,4 +1,4 @@
-"""Offline unit tests for the prototype loop — no Ollama needed."""
+"""Offline unit tests — no Ollama needed. Run: python test_agent.py"""
 
 import sys
 import tempfile
@@ -30,12 +30,10 @@ class TestParseAction(unittest.TestCase):
 
 class TestExecutorAllowlist(unittest.TestCase):
     def test_allows_inspection(self):
-        ok, _ = is_safe("ls -la")
-        self.assertTrue(ok)
+        self.assertTrue(is_safe("ls -la")[0])
 
     def test_allows_yarn_lint(self):
-        ok, _ = is_safe("yarn lint")
-        self.assertTrue(ok)
+        self.assertTrue(is_safe("yarn lint")[0])
 
     def test_blocks_rm_rf(self):
         ok, reason = is_safe("rm -rf /tmp/x")
@@ -43,12 +41,10 @@ class TestExecutorAllowlist(unittest.TestCase):
         self.assertIn("blocked", reason)
 
     def test_blocks_non_allowlisted(self):
-        ok, _ = is_safe("npm install")
-        self.assertFalse(ok)
+        self.assertFalse(is_safe("npm install")[0])
 
     def test_rejects_prefix_trick(self):
-        ok, _ = is_safe("lssss")
-        self.assertFalse(ok)
+        self.assertFalse(is_safe("lssss")[0])
 
 
 class TestFileOps(unittest.TestCase):
@@ -72,9 +68,14 @@ class TestSkills(unittest.TestCase):
         self.assertIn("Response format", A.load_skill("general"))
 
     def test_detect_mode(self):
-        self.assertEqual(A.detect_mode("fix the nacca curriculum bundle"), "beacon")
-        # Inside this repo the default is beacon (SKILL.md present)
-        self.assertEqual(A.detect_mode("hello"), "beacon")
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = Path(tmp)
+            self.assertEqual(A.detect_mode("fix the nacca curriculum", ws), "beacon")
+            self.assertEqual(A.detect_mode("hello", ws), "general")
+            # A workspace containing the Beacon repo auto-selects beacon mode
+            (ws / "data" / "side").mkdir(parents=True)
+            (ws / "data" / "side" / "SKILL.md").write_text("x")
+            self.assertEqual(A.detect_mode("hello", ws), "beacon")
 
 
 if __name__ == "__main__":

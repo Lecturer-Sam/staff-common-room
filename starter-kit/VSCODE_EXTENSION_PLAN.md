@@ -1,6 +1,6 @@
 # Milestone 2 — VS Code extension (plan, not yet built)
 
-Milestone 1 (`agent/agent.py`) is the backend. The extension is a thin
+Milestone 1 (`agent.py`) is the backend. The extension is a thin
 frontend over it — no agent logic is duplicated in TypeScript.
 
 ## Architecture
@@ -9,7 +9,7 @@ frontend over it — no agent logic is duplicated in TypeScript.
 ┌──────────────────────────── VS Code ────────────────────────────┐
 │  Side panel (webview): chat + mode badge + approve/deny buttons │
 │  Extension host (TypeScript):                                   │
-│    - spawns `python3 agent/agent.py --once "<task>" --cwd <ws>` │
+│    - spawns `python agent.py --once "<task>" --cwd <ws>` │
 │    - streams stdout back into the panel                         │
 │    - shows diffs for write/edit before applying (preview)       │
 └─────────────────────────────────────────────────────────────────┘
